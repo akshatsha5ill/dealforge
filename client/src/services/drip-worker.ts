@@ -47,16 +47,28 @@ class DripCampaignWorker {
         console.error("Failed to load transcript for drip worker", err);
       }
 
-      const res = await generateEmailDraft(transcriptContext, lead, aiKey, aiModel);
-      const data = await res.json();
+      let subject = '';
+      let body = '';
       
-      const subject = data?.draft?.subject || data?.subject || `${campaign.name} - Follow up`;
-      const body = data?.draft?.body || data?.draft?.content || data?.body || data?.content || `Hi ${lead.name},\n\nJust following up on our recent meeting. Let me know if you have any questions!\n\nBest,`;
+      const sequence = campaign.sequence || [];
+      const currentStep = campaign.currentStep || 0;
+      const step = sequence[currentStep];
+
+      if (step && step.subject && step.body) {
+        subject = step.subject;
+        body = step.body.replace(/\{lead_name\}/gi, lead.name).replace(/\{company\}/gi, lead.company || '');
+      } else {
+        const res = await generateEmailDraft(transcriptContext, lead, aiKey, aiModel);
+        const data = res; // generateEmailDraft now returns parsed JSON because of apiClient
+        subject = data?.draft?.subject || data?.subject || `${campaign.name} - Follow up`;
+        body = data?.draft?.body || data?.draft?.content || data?.body || data?.content || `Hi ${lead.name},\n\nJust following up on our recent meeting. Let me know if you have any questions!\n\nBest,`;
+      }
       
-      await sendEmail(lead.email, subject, body, emailKey);
+      const stepCampaignId = crypto.randomUUID();
+      await sendEmail(lead.email, subject, body, emailKey, stepCampaignId);
       
       await db.email_campaigns.put({
-        id: crypto.randomUUID(),
+        id: stepCampaignId,
         leadId: lead.id,
         subject,
         body,
@@ -64,14 +76,25 @@ class DripCampaignWorker {
         type: 'drip_step',
         sentAt: new Date(now).toISOString(),
         scheduledAt: new Date(now).toISOString(),
-        sequence: [],
       });
 
-      const isLastStep = campaign.currentStep >= 2;
+      await db.email_tracking.put({
+        id: crypto.randomUUID(),
+        campaignId: stepCampaignId,
+        opens: 0,
+        clicks: 0,
+        replied: 0,
+        lastActivity: null,
+      });
+
+      const nextStepIndex = currentStep + 1;
+      const isLastStep = nextStepIndex >= (sequence.length || 3);
+      const nextDelay = (sequence[nextStepIndex]?.delayDays ?? 1) * ONE_DAY_MS;
+
       await db.drip_campaigns.update(campaign.id, { 
         status: isLastStep ? 'completed' : 'active',
-        currentStep: campaign.currentStep + 1, 
-        nextRunAt: isLastStep ? null : now + ONE_DAY_MS 
+        currentStep: nextStepIndex, 
+        nextRunAt: isLastStep ? null : now + nextDelay
       });
     } catch (err) {
       console.error(`Failed to send drip step for campaign ${campaign.id}:`, err);

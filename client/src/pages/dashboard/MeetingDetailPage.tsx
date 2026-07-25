@@ -89,7 +89,7 @@ export default function MeetingDetailPage() {
       </div>
 
       {/* Meeting Header */}
-      <div className="glass-card" style={{ padding: '28px', marginBottom: '20px' }}>
+      <div className="ds-panel" style={{ padding: '28px', marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px' }}>{meeting.title}</h1>
@@ -107,7 +107,7 @@ export default function MeetingDetailPage() {
       {/* Content Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
         {/* Transcript */}
-        <div className="glass-card" style={{ padding: '24px' }}>
+        <div className="ds-panel" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px', color: 'var(--accent-primary)' }}>Transcript</h2>
           {transcript?.fullText ? (
             <div style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
@@ -123,7 +123,7 @@ export default function MeetingDetailPage() {
 
         {/* AI Analysis Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div className="glass-card" style={{ padding: '24px' }}>
+          <div className="ds-panel" style={{ padding: '24px' }}>
             <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px', color: 'var(--accent-primary)' }}>AI Analysis</h2>
 
             {error && (

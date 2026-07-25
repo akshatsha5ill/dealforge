@@ -47,7 +47,7 @@ export default function DashboardPage() {
       {/* Stat Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '30px' }}>
         {statCards.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="glass-card stat-card" style={{ padding: '20px', cursor: 'default' }}>
+          <div key={label} className="ds-panel stat-card" style={{ padding: '20px', cursor: 'default' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
               <span style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500 }}>{label}</span>
               <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -61,7 +61,7 @@ export default function DashboardPage() {
 
       {/* Charts Row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '30px' }}>
-        <div className="glass-card" style={{ padding: '24px' }}>
+        <div className="ds-panel" style={{ padding: '24px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-secondary)' }}>Meetings This Week</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={meetingTrendData}>
@@ -76,7 +76,7 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </div>
 
-        <div className="glass-card" style={{ padding: '24px' }}>
+        <div className="ds-panel" style={{ padding: '24px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-secondary)' }}>Pipeline Value</h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={pipelineData}>
@@ -94,7 +94,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Meetings */}
-      <div className="glass-card" style={{ padding: '24px' }}>
+      <div className="ds-panel" style={{ padding: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Recent Meetings</h3>
           <button onClick={() => navigate('/meetings')} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>

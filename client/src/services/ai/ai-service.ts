@@ -18,8 +18,8 @@ export const generateEmailDraft = async (transcript: string, leadContext: Record
   });
 };
 
-export const sendEmail = async (to: string, subject: string, body: string, emailApiKey: string) => {
-  return apiClient.post('/email/send', { to, subject, body, emailApiKey });
+export const sendEmail = async (to: string, subject: string, body: string, emailApiKey: string, campaignId?: string) => {
+  return apiClient.post('/email/send', { to, subject, body, emailApiKey, campaignId });
 };
 
 export const scoreLead = async (transcript: string, leadContext: Record<string, any>, apiKey: string, model: string) => {

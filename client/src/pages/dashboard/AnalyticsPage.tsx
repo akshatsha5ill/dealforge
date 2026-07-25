@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Video, Users, Mail, BarChart3, ArrowRight, Zap, Clock, Activity } from 'lucide-react';
+import { TrendingUp, Video, Users, Mail, BarChart3, ArrowRight, Zap, Clock, Activity, Timer } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { db } from '../../services/local-db/db';
 import { Meeting, Lead, Deal, EmailCampaign } from '../../types';
 
 const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
-import { filterByDate, buildMeetingTrendData, buildPipelineData, buildLeadStageData, buildEmailData, calculatePipelineVelocity, buildMeetingFrequencyData } from '../../utils/analytics';
+import { filterByDate, buildMeetingTrendData, buildPipelineData, buildLeadStageData, buildEmailData, calculatePipelineVelocity, buildMeetingFrequencyData, buildPipelineVelocity, buildLeadScoreTrend } from '../../utils/analytics';
 
 const tooltipStyle = { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '13px' };
 const axisTick = { fill: 'var(--text-muted)', fontSize: 12 };
@@ -49,6 +49,8 @@ export default function AnalyticsPage() {
   const pipelineData = buildPipelineData(filteredDeals);
   const leadStageData = buildLeadStageData(filteredLeads);
   const emailData = buildEmailData(filteredEmails);
+  const pipelineVelocity = buildPipelineVelocity(filteredDeals);
+  const leadScoreData = buildLeadScoreTrend(filteredLeads);
 
   const { velocity, avgSalesCycle } = calculatePipelineVelocity(filteredDeals);
 
@@ -109,7 +111,7 @@ export default function AnalyticsPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '30px' }}>
         {statCards.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="glass-card stat-card" style={{ padding: '20px', cursor: 'default' }}>
+          <div key={label} className="ds-panel stat-card" style={{ padding: '20px', cursor: 'default' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
               <span style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500 }}>{label}</span>
               <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -121,7 +123,7 @@ export default function AnalyticsPage() {
         ))}
       </div>
 
-      <div className="glass-card" style={{ padding: '24px', marginBottom: '30px' }}>
+      <div className="ds-panel" style={{ padding: '24px', marginBottom: '30px' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-secondary)' }}>Meeting Frequency</h3>
         <ResponsiveContainer width="100%" height={260}>
           <LineChart data={meetingFrequencyData}>
@@ -135,7 +137,7 @@ export default function AnalyticsPage() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '30px' }}>
-        <div className="glass-card" style={{ padding: '24px' }}>
+        <div className="ds-panel" style={{ padding: '24px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-secondary)' }}>Meeting Trends</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={meetingTrendData}>
@@ -148,7 +150,7 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
         </div>
 
-        <div className="glass-card" style={{ padding: '24px' }}>
+        <div className="ds-panel" style={{ padding: '24px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-secondary)' }}>Pipeline by Stage</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={pipelineData}>
@@ -167,7 +169,7 @@ export default function AnalyticsPage() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '30px' }}>
-        <div className="glass-card" style={{ padding: '24px' }}>
+        <div className="ds-panel" style={{ padding: '24px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-secondary)' }}>Lead Stages</h3>
           {leadStageData.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
@@ -197,7 +199,7 @@ export default function AnalyticsPage() {
           )}
         </div>
 
-        <div className="glass-card" style={{ padding: '24px' }}>
+        <div className="ds-panel" style={{ padding: '24px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-secondary)' }}>Email Performance</h3>
           {emailData.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
@@ -222,34 +224,56 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="glass-card" style={{ padding: '24px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '24px', color: 'var(--text-secondary)' }}>Conversion Funnel</h3>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0' }}>
-          {funnelSteps.map((step, i) => (
-            <div key={step.label} style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{ textAlign: 'center', minWidth: '120px' }}>
-                <div style={{
-                  width: `${Math.max(60, step.pct * 0.9)}px`,
-                  height: `${Math.max(40, step.pct * 0.5)}px`,
-                  margin: '0 auto 12px',
-                  borderRadius: '12px',
-                  backgroundColor: COLORS[i],
-                  opacity: 0.85,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.3s',
-                }}>
-                  <span style={{ color: '#fff', fontSize: '18px', fontWeight: 700 }}>{step.count}</span>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '30px' }}>
+        <div className="ds-panel" style={{ padding: '24px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '24px', color: 'var(--text-secondary)' }}>Conversion Funnel</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0' }}>
+            {funnelSteps.map((step, i) => (
+              <div key={step.label} style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ textAlign: 'center', minWidth: '120px' }}>
+                  <div style={{
+                    width: `${Math.max(60, step.pct * 0.9)}px`,
+                    height: `${Math.max(40, step.pct * 0.5)}px`,
+                    margin: '0 auto 12px',
+                    borderRadius: '12px',
+                    backgroundColor: COLORS[i],
+                    opacity: 0.85,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.3s',
+                  }}>
+                    <span style={{ color: '#fff', fontSize: '18px', fontWeight: 700 }}>{step.count}</span>
+                  </div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>{step.label}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{step.pct}%</div>
                 </div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>{step.label}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{step.pct}%</div>
+                {i < funnelSteps.length - 1 && (
+                  <ArrowRight size={20} style={{ color: 'var(--text-muted)', margin: '0 12px', marginBottom: '30px' }} />
+                )}
               </div>
-              {i < funnelSteps.length - 1 && (
-                <ArrowRight size={20} style={{ color: 'var(--text-muted)', margin: '0 12px', marginBottom: '30px' }} />
-              )}
+            ))}
+          </div>
+        </div>
+
+        <div className="ds-panel" style={{ padding: '24px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-secondary)' }}>Avg. Lead Score Trend</h3>
+          {leadScoreData.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+              <TrendingUp size={32} style={{ marginBottom: '8px', opacity: 0.3 }} />
+              <p>No lead scores available.</p>
             </div>
-          ))}
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={leadScoreData}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} />
+                <YAxis tick={axisTick} axisLine={false} tickLine={false} domain={[0, 100]} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Line type="monotone" dataKey="score" stroke="var(--accent-primary)" strokeWidth={3} dot={{ fill: 'var(--bg-primary)', stroke: 'var(--accent-primary)', strokeWidth: 2 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://appssdk.zoom.us; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss: ws:; img-src 'self' data: https:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://appssdk.zoom.us http://localhost:8400; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss: ws: http://localhost:8400; img-src 'self' data: https: blob:;" data-impeccable-csp-original="ZGVmYXVsdC1zcmMgJ3NlbGYnOyBzY3JpcHQtc3JjICdzZWxmJyAndW5zYWZlLWlubGluZScgJ3Vuc2FmZS1ldmFsJyBodHRwczovL2FwcHNzZGsuem9vbS51czsgc3R5bGUtc3JjICdzZWxmJyAndW5zYWZlLWlubGluZScgaHR0cHM6Ly9mb250cy5nb29nbGVhcGlzLmNvbTsgZm9udC1zcmMgJ3NlbGYnIGh0dHBzOi8vZm9udHMuZ3N0YXRpYy5jb207IGNvbm5lY3Qtc3JjICdzZWxmJyBodHRwczovLyouZ29vZ2xlYXBpcy5jb20gaHR0cHM6Ly8qLmZpcmViYXNlaW8uY29tIHdzczogd3M6OyBpbWctc3JjICdzZWxmJyBkYXRhOiBodHRwczo7">
     <title>DealForge</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,5 +13,8 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-  </body>
+  <!-- impeccable-live-start -->
+<script src="http://localhost:8400/live.js?token=fddfffaf-e94f-48c1-b83a-84e9c0dc0c04"></script>
+<!-- impeccable-live-end -->
+</body>
 </html>

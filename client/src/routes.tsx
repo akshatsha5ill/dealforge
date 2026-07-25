@@ -4,6 +4,7 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import ZoomPanelLayout from './components/layout/ZoomPanelLayout';
 import LoginPage from './pages/auth/LoginPage';
+import LandingPage from './pages/LandingPage';
 import { ErrorBoundary } from './components/common';
 
 // Lazy loaded components for code splitting
@@ -41,6 +42,10 @@ export const router = createBrowserRouter([
   { path: '/support', element: <Suspense fallback={<SuspenseFallback />}><Support /></Suspense> },
   {
     path: '/',
+    element: <LandingPage />,
+  },
+  {
+    path: '/dashboard',
     element: (
       <ProtectedRoute>
         <DashboardLayout />

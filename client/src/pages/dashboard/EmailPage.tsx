@@ -3,7 +3,7 @@ import { Send, Mail, Clock, CheckCircle, FileText, Plus, X, Search, RefreshCw } 
 import { db } from '../../services/local-db/db';
 import { useStore } from '../../store';
 import { apiClient } from '../../services/api/client';
-import { auth } from '../../firebase/config';
+import { auth } from '../../services/firebase/config';
 import { ComposeEmailCard } from '../../components/email/ComposeEmailCard';
 import { EmailCampaignCard } from '../../components/email/EmailCampaignCard';
 import { DripCampaignCard } from '../../components/email/DripCampaignCard';
@@ -14,6 +14,7 @@ const STATUS_CONFIG: Record<string, any> = {
   draft: { color: 'var(--text-muted)', bg: 'var(--bg-tertiary)', icon: FileText, label: 'Draft' },
   scheduled: { color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.12)', icon: Clock, label: 'Scheduled' },
   sent: { color: 'var(--success)', bg: 'rgba(34, 197, 94, 0.12)', icon: CheckCircle, label: 'Sent' },
+  paused: { color: 'var(--text-secondary)', bg: 'var(--bg-secondary)', icon: Clock, label: 'Paused' },
 };
 
 export default function EmailPage() {
@@ -39,6 +40,7 @@ export default function EmailPage() {
 
   const loadData = useCallback(async () => {
     try {
+
       const [campaignData, dripData, leadData, trackingData] = await Promise.all([
         db.email_campaigns.toArray(),
         db.drip_campaigns.toArray(),
@@ -168,9 +170,13 @@ export default function EmailPage() {
         useStore.getState().setError("Failed to load transcript context for AI. Drafting with limited context.");
       }
 
+      const token = await auth.currentUser?.getIdToken();
       const res = await fetch('/api/email/draft', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           lead: {
             name: lead?.name,
@@ -232,26 +238,31 @@ export default function EmailPage() {
           name: form.subject,
           status: 'active',
           currentStep: 0,
+          sequence: form.sequence,
           nextRunAt: Date.now(),
           createdAt: Date.now(),
         };
         await db.drip_campaigns.put(campaign);
       } else {
         if (!form.body) return;
+        const token = await auth.currentUser?.getIdToken();
         const campaignId = crypto.randomUUID();
         const baseUrl = window.location.origin;
         const uid = auth.currentUser?.uid || '';
         const pixelHtml = `<img src="${baseUrl}/api/tracking/open/${campaignId}?uid=${uid}" width="1" height="1" style="display:none;" />`;
         const trackedBody = form.body + pixelHtml;
-
         const res = await fetch('/api/email/send', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
           body: JSON.stringify({
             to: lead?.email,
             subject: form.subject,
             body: trackedBody,
             leadId: form.leadId,
+            campaignId,
             emailApiKey: useStore.getState().resendKey
           }),
         });
@@ -296,20 +307,29 @@ export default function EmailPage() {
   };
 
   const handleToggleDripStatus = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
-    await db.drip_campaigns.update(id, { status: newStatus });
-    loadData();
+    try {
+      const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+      await db.drip_campaigns.update(id, { status: newStatus });
+      loadData();
+    } catch (err) {
+      console.error('Failed to toggle drip status:', err);
+    }
   };
 
   const handleDeleteDrip = async (id: string) => {
-    await db.drip_campaigns.delete(id);
-    loadData();
+    try {
+      await db.drip_campaigns.delete(id);
+      loadData();
+    } catch (err) {
+      console.error('Failed to delete drip:', err);
+    }
   };
 
   const handleSendDraft = async (campaign: any) => {
     const lead = leads.find(l => l.id === campaign.leadId);
     if (!lead) return;
     try {
+      const token = await auth.currentUser?.getIdToken();
       const baseUrl = window.location.origin;
       const uid = auth.currentUser?.uid || '';
       // Only append if not already tracked. Simple check:
@@ -317,15 +337,18 @@ export default function EmailPage() {
       if (!bodyHtml.includes('/api/tracking/open/')) {
         bodyHtml += `<img src="${baseUrl}/api/tracking/open/${campaign.id}?uid=${uid}" width="1" height="1" style="display:none;" />`;
       }
-
       const res = await fetch('/api/email/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           to: lead.email,
           subject: campaign.subject,
           body: bodyHtml,
           leadId: campaign.leadId,
+          campaignId: campaign.id,
           emailApiKey: useStore.getState().resendKey
         }),
       });
@@ -387,7 +410,7 @@ export default function EmailPage() {
 
       <div className="stat-grid">
         {statCards.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="glass-card stat-card" style={{ padding: '20px' }}>
+          <div key={label} className="ds-panel stat-card" style={{ padding: '20px' }}>
             <div className="stat-card-inner">
               <span className="stat-label">{label}</span>
               <div className="stat-icon-wrapper" style={{ backgroundColor: `${color}15` }}>
@@ -401,7 +424,7 @@ export default function EmailPage() {
 
       {stats.sent > 0 && (
         <div className="metrics-row">
-          <div className="glass-card" style={{ padding: '20px' }}>
+          <div className="ds-panel" style={{ padding: '20px' }}>
             <div className="metric-header">
               <div className="metric-icon" style={{ backgroundColor: 'rgba(34, 197, 94, 0.12)' }}>
                 <Mail size={16} style={{ color: 'var(--success)' }} />
@@ -413,7 +436,7 @@ export default function EmailPage() {
               {stats.sent > 0 ? Math.round(((stats.opened || 0) / stats.sent) * 100) : 0}% open rate
             </p>
           </div>
-          <div className="glass-card" style={{ padding: '20px' }}>
+          <div className="ds-panel" style={{ padding: '20px' }}>
             <div className="metric-header">
               <div className="metric-icon" style={{ backgroundColor: 'rgba(99, 102, 241, 0.12)' }}>
                 <Send size={16} style={{ color: 'var(--accent-primary)' }} />
@@ -478,7 +501,7 @@ export default function EmailPage() {
 
       {filterStatus === 'drips' ? (
         dripCampaigns.length === 0 ? (
-          <div className="glass-card empty-state">
+          <div className="ds-panel empty-state">
             <Clock size={40} style={{ marginBottom: '12px', opacity: 0.3 }} />
             <p style={{ fontSize: '16px', marginBottom: '4px' }}>No drip campaigns yet</p>
             <p style={{ fontSize: '13px' }}>Click "Compose" and select "Automated Drip Campaign".</p>
@@ -501,7 +524,7 @@ export default function EmailPage() {
           </div>
         )
       ) : filteredCampaigns.length === 0 ? (
-        <div className="glass-card empty-state">
+        <div className="ds-panel empty-state">
           <Mail size={40} style={{ marginBottom: '12px', opacity: 0.3 }} />
           <p style={{ fontSize: '16px', marginBottom: '4px' }}>
             {campaigns.length === 0 ? 'No campaigns yet' : 'No campaigns match your filters'}
@@ -521,6 +544,7 @@ export default function EmailPage() {
               getLeadEmail={getLeadEmail}
               handleSendDraft={handleSendDraft}
               handleDelete={handleDelete}
+              handleToggleDripStatus={handleToggleDripStatus}
             />
           ))}
         </div>

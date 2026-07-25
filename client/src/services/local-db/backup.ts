@@ -40,7 +40,7 @@ export const importData = async (data: BackupData): Promise<void> => {
   if (data.tracking) await db.email_tracking.bulkPut(data.tracking);
 };
 
-export const downloadJSON = (data: BackupData, filename = `meetflow-backup-${new Date().toISOString().split('T')[0]}.json`): void => {
+export const downloadJSON = (data: BackupData, filename = `dealforge-backup-${new Date().toISOString().split('T')[0]}.json`): void => {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -70,3 +70,63 @@ export const requestPersistence = async (): Promise<boolean> => {
   }
   return false;
 };
+
+export const importFromJSONFile = async (file: File): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        await importData(data);
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+};
+
+export const selectBackupDirectory = async (): Promise<any> => {
+  if (!('showDirectoryPicker' in window)) {
+    throw new Error('File System Access API not supported in this browser.');
+  }
+  // @ts-ignore
+  const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+  await db.settings.put({ key: 'backup_dir_handle', value: handle });
+  return handle;
+};
+
+export const verifyPermission = async (fileHandle: any, readWrite: boolean = true) => {
+  const options = { mode: readWrite ? 'readwrite' : 'read' };
+  if ((await fileHandle.queryPermission(options)) === 'granted') {
+    return true;
+  }
+  if ((await fileHandle.requestPermission(options)) === 'granted') {
+    return true;
+  }
+  return false;
+};
+
+export const runAutoBackup = async (handle: any): Promise<boolean> => {
+  try {
+    const hasPermission = await verifyPermission(handle, true);
+    if (!hasPermission) return false;
+    
+    const data = await exportAllData();
+    const filename = `dealforge-autobackup-${new Date().toISOString().split('T')[0]}.json`;
+    
+    const fileHandle = await handle.getFileHandle(filename, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(data, null, 2));
+    await writable.close();
+    
+    await db.settings.put({ key: 'last_auto_backup', value: Date.now() });
+    return true;
+  } catch (err) {
+    console.error('Auto backup failed', err);
+    return false;
+  }
+};
+

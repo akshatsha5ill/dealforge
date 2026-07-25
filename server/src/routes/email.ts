@@ -11,10 +11,11 @@ interface AuthenticatedRequest extends Request {
 }
 
 const sendSchema = z.object({
-  to: z.string({ required_error: "invalid input" }).email("invalid input"),
-  subject: z.string({ required_error: "invalid input" }).min(1, "invalid input"),
-  body: z.string({ required_error: "invalid input" }).min(1, "invalid input"),
-  emailApiKey: z.string().min(1, "invalid input").optional()
+  to: z.string().email("Invalid email address"),
+  subject: z.string().min(1, "Subject is required"),
+  body: z.string().min(1, "Body is required"),
+  campaignId: z.string().optional(),
+  emailApiKey: z.string().min(1, "Missing Email API key")
 });
 
 export const validateRequest = (schema: { body: any }) => (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -37,11 +38,31 @@ router.post(
   validateRequest({ body: sendSchema }),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> => {
     try {
-      const { to, subject, body } = req.body;
+      const { to, subject, body, campaignId } = req.body;
       const emailApiKey = req.body.emailApiKey;
       delete req.body.emailApiKey;
+      const uid = req.user?.uid;
       
-      const data = await sendDraft(to, subject, body, { apiKey: emailApiKey });
+      let finalBody = body;
+      
+      if (campaignId && uid) {
+        const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+        const host = req.get('host');
+        const trackingBase = `${protocol}://${host}/api/tracking`;
+        
+        finalBody = finalBody.replace(/<a\s+(?:[^>]*?\s+)?href="([^"]*)"([^>]*)>/gi, (match: string, url: string, rest: string) => {
+          if (url.startsWith('http')) {
+            const wrapped = `${trackingBase}/click/${campaignId}?uid=${uid}&url=${encodeURIComponent(url)}`;
+            return `<a href="${wrapped}"${rest}>`;
+          }
+          return match;
+        });
+        
+        const pixel = `<img src="${trackingBase}/open/${campaignId}?uid=${uid}" width="1" height="1" style="display:none;" />`;
+        finalBody = `${finalBody}${pixel}`;
+      }
+      
+      const data = await sendDraft(to, subject, finalBody, { apiKey: emailApiKey });
       return res.status(200).json({ status: "success", data });
     } catch (error) {
       next(error);

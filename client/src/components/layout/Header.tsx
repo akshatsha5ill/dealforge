@@ -19,21 +19,45 @@ export default function Header() {
   };
 
   const initials = user?.displayName
-    ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    ? user.displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     : user?.email?.[0]?.toUpperCase() || 'U';
 
   return (
-    <header style={{ height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 20px', backgroundColor: 'var(--bg-glass)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderBottom: '1px solid var(--border)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{user?.email || 'user@example.com'}</span>
-        <div style={{ width: '35px', height: '35px', borderRadius: '50%', backgroundColor: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bg-primary)', fontWeight: 'bold', fontSize: '14px' }}>
+    <header style={{ 
+      height: '70px', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'flex-end', 
+      padding: '0 32px', 
+      backgroundColor: 'var(--bg-primary)', 
+      borderBottom: '1px solid var(--border)',
+      position: 'sticky',
+      top: 0,
+      zIndex: 100
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+          {user?.email || 'user@example.com'}
+        </span>
+        <div style={{ 
+          width: '36px', 
+          height: '36px', 
+          backgroundColor: 'var(--bg-secondary)', 
+          border: '1px solid var(--border)',
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          color: 'var(--text-primary)', 
+          fontWeight: '500', 
+          fontSize: '14px',
+          fontFamily: 'var(--font-display)'
+        }}>
           {initials}
         </div>
         <button
           onClick={handleLogout}
-          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', transition: 'color 0.2s, background-color 0.2s' }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--danger)'; e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+          className="ds-btn-ghost"
+          style={{ padding: '8px', display: 'flex', alignItems: 'center', borderBottom: 'none' }}
           title="Sign out"
         >
           <LogOut size={18} />

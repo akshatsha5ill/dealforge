@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { exportAllData, downloadJSON } from '../../services/local-db/backup';
+import { exportAllData, downloadJSON } from '../services/local-db/backup';
 
 export function useAutoBackup() {
   useEffect(() => {

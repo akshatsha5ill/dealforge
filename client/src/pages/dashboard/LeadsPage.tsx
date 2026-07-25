@@ -4,13 +4,14 @@ import { VirtuosoGrid } from 'react-virtuoso';
 import { Lead } from '../../types';
 import { scoreLead } from '../../services/ai/ai-service';
 import { useStore } from '../../store';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 
 const stages = ['Discovery', 'Demo', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingRescore, setLoadingRescore] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [scoringId, setScoringId] = useState<string | null>(null);
@@ -35,6 +36,50 @@ export default function LeadsPage() {
     const matchesSearch = l.name?.toLowerCase().includes(search.toLowerCase()) || l.company?.toLowerCase().includes(search.toLowerCase()) || l.email?.toLowerCase().includes(search.toLowerCase());
     return matchesStage && matchesSearch;
   });
+
+  const handleRescore = async (lead: Lead) => {
+    setLoadingRescore(prev => ({ ...prev, [lead.id]: true }));
+    try {
+      const transcript = await db.transcripts.where('meetingId').equals(lead.meetingId).first();
+      if (!transcript) {
+        alert('No transcript found for this lead.');
+        return;
+      }
+      
+      const apiKey = openAiKey || anthropicKey || 'test';
+      const model = openAiKey ? 'openai' : 'anthropic';
+      
+      const res = await fetch('/api/ai/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transcript: (transcript as any).fullText || (transcript as any).content || '',
+          leadContext: {
+            name: lead.name,
+            company: lead.company,
+            role: lead.role,
+            stage: lead.stage
+          },
+          model,
+          apiKey
+        })
+      });
+      
+      if (!res.ok) throw new Error('Rescore failed');
+      const data = await res.json();
+      
+      if (data.score && data.score.score) {
+        const newScore = data.score.score;
+        await db.leads.update(lead.id, { score: newScore });
+        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, score: newScore } : l));
+      }
+    } catch (err) {
+      console.error('Failed to rescore lead:', err);
+      alert('Failed to rescore lead.');
+    } finally {
+      setLoadingRescore(prev => ({ ...prev, [lead.id]: false }));
+    }
+  };
 
   const getScoreColor = (score) => {
     if (score >= 80) return 'var(--success)';
@@ -122,14 +167,25 @@ export default function LeadsPage() {
           data={filtered}
           listClassName="leads-grid"
           itemContent={(index, lead) => (
-            <div key={lead.id} className="glass-card stat-card" style={{ padding: '20px' }}>
+            <div key={lead.id} className="ds-panel stat-card" style={{ padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                 <div>
                   <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '4px' }}>{lead.name}</h3>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{lead.role} at {lead.company}</p>
                 </div>
-                <div style={{ width: '44px', height: '44px', borderRadius: '50%', border: `2px solid ${getScoreColor(lead.score)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span className="data-text" style={{ fontSize: '14px', fontWeight: 700, color: getScoreColor(lead.score) }}>{lead.score}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <div style={{ width: '44px', height: '44px', borderRadius: '50%', border: `2px solid ${getScoreColor(lead.score)}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span className="data-text" style={{ fontSize: '14px', fontWeight: 700, color: getScoreColor(lead.score) }}>{lead.score}</span>
+                  </div>
+                  <button 
+                    onClick={() => handleRescore(lead)}
+                    disabled={loadingRescore[lead.id]}
+                    style={{ background: 'none', border: 'none', cursor: loadingRescore[lead.id] ? 'not-allowed' : 'pointer', color: 'var(--text-muted)', padding: '4px' }}
+                    title="Re-score lead with AI"
+                  >
+                    <RefreshCw size={14} style={{ animation: loadingRescore[lead.id] ? 'spin 1s linear infinite' : 'none' }} />
+                  </button>
+                  <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                 </div>
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '12px' }}>{lead.email}</p>

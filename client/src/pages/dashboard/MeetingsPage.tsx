@@ -47,7 +47,7 @@ export default function MeetingsPage() {
         />
       </div>
 
-      <div className="glass-card" style={{ padding: '20px' }}>
+      <div className="ds-panel" style={{ padding: '20px' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Loading...</div>
         ) : filtered.length === 0 ? (

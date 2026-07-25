@@ -35,7 +35,7 @@ export const DripCampaignCard: React.FC<DripCampaignCardProps> = ({
   const StatusIcon = statusInfo.icon;
 
   return (
-    <div className="glass-card campaign-card" style={{ padding: '20px' }}>
+    <div className="ds-panel campaign-card" style={{ padding: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
         <div>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>

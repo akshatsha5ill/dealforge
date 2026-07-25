@@ -726,7 +726,7 @@ For the very first buildable version, we focus on **Phase 1 only**:
 
 
 
-# DealForge - Remaining Tasks
+# DealForge - Implementation Status
 
 ## Completed
 
@@ -757,23 +757,41 @@ For the very first buildable version, we focus on **Phase 1 only**:
 ### Phase 2: Lead Management & Pipeline
 - [x] Lead cards with score visualization
 - [x] Stage-based filtering
-- [x] Auto lead creation from meeting participants
-- [x] AI lead scoring
-- [x] Kanban drag-and-drop pipeline
-- [x] Data durability (auto-backup, storage persistence)
+- [x] Auto lead creation from meeting participants (`client/src/services/lead-automation.ts`)
+- [x] AI lead scoring (`client/src/pages/dashboard/LeadsPage.tsx`, `server/src/routes/ai.ts`)
+- [x] Kanban drag-and-drop pipeline (`client/src/pages/dashboard/PipelinePage.tsx`)
+- [x] Data durability (auto-backup via `backup.ts`, storage persistence in `App.tsx`)
 
 ### Phase 3: Email Outreach
 - [x] AI email draft generation endpoint
 - [x] Email sending via Resend
-- [x] Email editor UI (rich text)
-- [x] Drip campaign management
-- [x] Open/click tracking integration in dashboard
+- [x] Email editor UI (rich text) (`client/src/components/email/RichTextEditor.tsx`)
+- [x] Drip campaign management (`client/src/components/email/ComposeEmailCard.tsx`, `client/src/services/drip-worker.ts`)
+- [x] Open/click tracking integration in dashboard (`client/src/pages/dashboard/EmailPage.tsx`)
 
 ### Phase 4: Analytics & Launch
 - [x] Basic dashboard with charts
-- [x] Full analytics page (pipeline velocity, meeting frequency)
-- [x] Stripe billing integration
-- [x] Zoom Marketplace submission
+- [x] Full analytics page with 6 charts (pipeline velocity, meeting frequency, lead stages, conversion funnel, email performance, lead score trends) (`client/src/pages/dashboard/AnalyticsPage.tsx`)
+- [x] Stripe billing integration (`server/src/routes/billing.ts`, `client/src/pages/dashboard/BillingPage.tsx`)
+- [ ] Zoom Marketplace submission (blocked on real Zoom credentials)
 
-## Known Issues
-- None critical remaining
+## Infrastructure & Configuration Issues
+
+### High Priority
+- [ ] **Server ESM/CJS mismatch** — `server/package.json` declares `"type": "module"` (ESM) but `server/tsconfig.json` compiles to `"module": "CommonJS"`. The compiled `dist/index.js` will fail at runtime. Fix: change tsconfig `module` to `"NodeNext"` or remove `"type": "module"` from package.json.
+- [ ] **Deployment configs run TypeScript source directly** — `railway.json` and `render.yaml` both use `startCommand: "node src/index.js"` which runs `.ts` files directly. Fix: use `tsx src/index.js` or point to `dist/index.js` after build.
+- [ ] **Docker workspace hoisting** — Both Dockerfiles copy individual workspace `package.json` files but rely on root-level `package-lock.json`. `npm ci` inside Docker may fail. Fix: copy root package files into Docker context or use multi-stage workspace-aware builds.
+
+### Medium Priority
+- [ ] **`.env` files contain only placeholders** — No real Firebase, Zoom, Stripe, or Resend credentials configured. App will not function without real values.
+- [ ] **`zoom-manifest.json` has placeholder credentials** — `clientId` and `clientSecret` are `PLACEHOLDER_*` values.
+- [ ] **`render.yaml` missing Stripe env vars** — `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and price IDs not listed.
+
+### Low Priority
+- [ ] **`.antigravityrules` version mismatch** — States "Vite 8" and "Express 5" but actual versions are Vite ^5.0.0 and Express ^4.21.0.
+- [ ] **`client/vite.config.ts` test setup path** — References `./src/test/setup.js` but file is `setup.ts`.
+- [ ] **`deploy.yml` has no deployment step** — Builds and pushes Docker images but doesn't deploy them anywhere.
+
+## Notes
+- Tracking events and buffer service use in-memory storage (lost on server restart). Acceptable for development/small scale; would need Redis for production durability.
+- The `save_note` WebSocket handler only logs (intentional — notes persist via HTTP endpoint).

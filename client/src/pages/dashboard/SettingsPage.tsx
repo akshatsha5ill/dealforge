@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStore } from '../../store';
 import { encryptKey, decryptKey } from '../../crypto/key-vault';
 import { db } from '../../services/local-db/db';
-import { requestPersistence, exportAllData, importData, downloadJSON, getStorageUsage } from '../../services/local-db/backup';
+import { requestPersistence, exportAllData, importData, downloadJSON, getStorageUsage, selectBackupDirectory, importFromJSONFile, StorageUsage } from '../../services/local-db/backup';
+import { Database, Upload, Download, HardDrive } from 'lucide-react';
 
 export default function SettingsPage() {
   const { setOpenAiKey, setAnthropicKey, setGeminiKey, setResendKey } = useStore();
@@ -15,63 +16,54 @@ export default function SettingsPage() {
   const [password, setPassword] = useState('');
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [pendingKeys, setPendingKeys] = useState<any>(null);
-
-  const [isPersisted, setIsPersisted] = useState(false);
-  const [storageUsage, setStorageUsage] = useState<any>(null);
-  const [backupLoading, setBackupLoading] = useState(false);
-  const [importStatus, setImportStatus] = useState('');
-  const [autoBackupEnabled, setAutoBackupEnabled] = useState(false);
+  const [storageUsage, setStorageUsage] = useState<StorageUsage | null>(null);
+  const [persistent, setPersistent] = useState(false);
+  const [hasBackupDir, setHasBackupDir] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (navigator.storage && navigator.storage.persisted) {
-      navigator.storage.persisted().then(setIsPersisted);
-    }
-    getStorageUsage().then(setStorageUsage);
-    setAutoBackupEnabled(localStorage.getItem('dealforge_autobackup') === 'true');
+    const loadStorage = async () => {
+      const usage = await getStorageUsage();
+      setStorageUsage(usage);
+      const isPersistent = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : false;
+      setPersistent(isPersistent);
+      const dirHandle = await db.settings.get('backup_dir_handle');
+      setHasBackupDir(!!dirHandle);
+    };
+    loadStorage();
   }, []);
 
-  const handleRequestPersistence = async () => {
-    const granted = await requestPersistence();
-    setIsPersisted(granted);
-  };
-
   const handleExport = async () => {
-    setBackupLoading(true);
-    try {
-      const data = await exportAllData();
-      downloadJSON(data);
-    } catch (err) {
-      console.error('Export failed:', err);
-    } finally {
-      setBackupLoading(false);
+    const data = await exportAllData();
+    downloadJSON(data);
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      try {
+        await importFromJSONFile(e.target.files[0]);
+        alert('Data imported successfully!');
+      } catch (err) {
+        console.error(err);
+        alert('Failed to import data');
+      }
     }
   };
 
-  const handleImport = async (e: any) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setBackupLoading(true);
-    setImportStatus('Reading file...');
+  const handleSetupAutoBackup = async () => {
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      setImportStatus('Importing data...');
-      await importData(data);
-      setImportStatus('Import successful! Refresh to see changes.');
+      await selectBackupDirectory();
+      setHasBackupDir(true);
+      alert('Auto-backup folder selected successfully!');
     } catch (err) {
-      console.error('Import failed:', err);
-      setImportStatus('Import failed. Invalid file.');
-    } finally {
-      setBackupLoading(false);
-      setTimeout(() => setImportStatus(''), 3000);
+      console.error(err);
+      alert('Failed to setup auto-backup directory');
     }
   };
 
-  const toggleAutoBackup = (e: any) => {
-    const val = e.target.checked;
-    setAutoBackupEnabled(val);
-    localStorage.setItem('dealforge_autobackup', val.toString());
+  const handleRequestPersistence = async () => {
+    const isPersistent = await requestPersistence();
+    setPersistent(isPersistent);
   };
 
   const decryptKeys = useCallback(async (encryptedData: any) => {
@@ -187,7 +179,7 @@ export default function SettingsPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', maxWidth: '900px' }}>
         {/* API Keys Section */}
-        <div className="glass-card" style={{ padding: '28px' }}>
+        <div className="ds-panel" style={{ padding: '28px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--accent-primary)' }}>API Keys (BYOK)</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '13px', lineHeight: 1.5 }}>
             Your keys are encrypted client-side using AES-256-GCM and stored in your browser. They are never sent to our servers.
@@ -243,7 +235,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Password / Security Section */}
-        <div className="glass-card" style={{ padding: '28px' }}>
+        <div className="ds-panel" style={{ padding: '28px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--accent-primary)' }}>Encryption Password</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '13px', lineHeight: 1.5 }}>
             Set a password to encrypt/decrypt your API keys. You'll need this password to restore keys after clearing browser data.
@@ -277,58 +269,54 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Data Management Section */}
-        <div className="glass-card" style={{ padding: '28px', gridColumn: '1 / -1' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--accent-primary)' }}>Data Management & Durability</h2>
+        {/* Data Management & Backup Section */}
+        <div className="ds-panel" style={{ padding: '28px', gridColumn: '1 / -1' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Database size={18} /> Data Management & Backup
+          </h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '13px', lineHeight: 1.5 }}>
-            Manage your local database, ensure data persistence, and perform backups. All your data lives in this browser.
+            Export your data manually, or set up an automated weekly backup folder on your computer.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-            <div>
-              <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '8px' }}>Storage Persistence</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '12px' }}>
-                Status: <span style={{ color: isPersisted ? 'var(--success)' : 'var(--warning)', fontWeight: 600 }}>{isPersisted ? 'Persistent' : 'Temporary'}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}><Download size={16} /> Export Data</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '16px' }}>Download a complete JSON backup of all meetings, leads, and deals.</p>
+              <button onClick={handleExport} style={{ padding: '8px 16px', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', width: '100%' }}>Download JSON</button>
+            </div>
+            
+            <div style={{ padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}><Upload size={16} /> Import Data</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '16px' }}>Restore data from a previous JSON backup file.</p>
+              <input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" style={{ display: 'none' }} />
+              <button onClick={() => fileInputRef.current?.click()} style={{ padding: '8px 16px', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', width: '100%' }}>Select File</button>
+            </div>
+
+            <div style={{ padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}><HardDrive size={16} /> Auto-Backup</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '16px' }}>
+                {hasBackupDir ? 'Auto-backup is enabled.' : 'Select a local folder for weekly automatic backups.'}
               </p>
-              {!isPersisted && (
-                <button
-                  type="button"
-                  onClick={handleRequestPersistence}
-                  style={{ padding: '8px 16px', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}
-                >
-                  Request Persistent Storage
-                </button>
-              )}
-              {storageUsage && (
-                <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '12px' }}>
-                  Storage Used: {(storageUsage.used / 1024 / 1024).toFixed(2)} MB of {(storageUsage.quota / 1024 / 1024).toFixed(2)} MB ({storageUsage.percent}%)
-                </p>
-              )}
+              <button onClick={handleSetupAutoBackup} style={{ padding: '8px 16px', backgroundColor: hasBackupDir ? 'var(--success)' : 'var(--accent-primary)', color: hasBackupDir ? '#fff' : 'var(--bg-primary)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', width: '100%', fontWeight: 600 }}>
+                {hasBackupDir ? 'Change Folder' : 'Setup Folder'}
+              </button>
             </div>
+          </div>
 
+          <div style={{ padding: '16px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '8px' }}>Manual Backup</h3>
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-                <button
-                  type="button"
-                  onClick={handleExport}
-                  disabled={backupLoading}
-                  style={{ padding: '8px 16px', backgroundColor: 'var(--accent-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: '8px', cursor: backupLoading ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 600 }}
-                >
-                  {backupLoading ? 'Exporting...' : 'Export JSON Backup'}
-                </button>
-                <label style={{ padding: '8px 16px', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '8px', cursor: backupLoading ? 'not-allowed' : 'pointer', fontSize: '13px' }}>
-                  Import JSON
-                  <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} disabled={backupLoading} />
-                </label>
-              </div>
-              {importStatus && <p style={{ color: 'var(--success)', fontSize: '13px', marginBottom: '12px' }}>{importStatus}</p>}
-
-              <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input type="checkbox" id="autoBackup" checked={autoBackupEnabled} onChange={toggleAutoBackup} />
-                <label htmlFor="autoBackup" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Enable daily auto-backup download</label>
-              </div>
+              <h4 style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>Storage Status</h4>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                {storageUsage ? `Used ${((storageUsage as any).used / 1024 / 1024).toFixed(2)} MB of ${((storageUsage as any).quota / 1024 / 1024).toFixed(2)} MB (${storageUsage.percent}%)` : 'Checking storage...'} 
+                {' • '} 
+                <span style={{ color: persistent ? 'var(--success)' : 'var(--warning)' }}>{persistent ? 'Persistent Storage Granted' : 'Storage may be evicted under pressure'}</span>
+              </p>
             </div>
+            {!persistent && (
+              <button onClick={handleRequestPersistence} style={{ padding: '6px 12px', backgroundColor: 'transparent', color: 'var(--accent-primary)', border: '1px solid var(--accent-primary)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>
+                Request Persistence
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -336,7 +324,7 @@ export default function SettingsPage() {
       {/* Encryption Prompt Modal */}
       {showPasswordPrompt && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="glass-card" style={{ padding: '32px', width: '400px', maxWidth: '90vw' }}>
+          <div className="ds-panel" style={{ padding: '32px', width: '400px', maxWidth: '90vw' }}>
             <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>Set Encryption Password</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '20px' }}>Choose a strong password to encrypt your API keys.</p>
             <input

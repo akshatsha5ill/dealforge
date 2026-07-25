@@ -1,6 +1,6 @@
-import React from 'react';
-import { Send, Sparkles, FileText } from 'lucide-react';
-import { RichTextEditor } from '../common';
+import React, { useEffect } from 'react';
+import { Send, Sparkles, FileText, Plus, Trash2 } from 'lucide-react';
+import { RichTextEditor } from './RichTextEditor';
 import './Email.css';
 
 interface ComposeEmailProps {
@@ -32,8 +32,40 @@ export const ComposeEmailCard: React.FC<ComposeEmailProps> = ({
   handleSaveDraft,
   handleSend,
 }) => {
+  useEffect(() => {
+    if (form.type === 'drip_campaign' && (!form.sequence || form.sequence.length === 0)) {
+      setForm((prev: any) => ({
+        ...prev,
+        sequence: [{ delayDays: 1, subject: '', body: '' }]
+      }));
+    }
+  }, [form.type, setForm]);
+
+  const addSequenceStep = () => {
+    setForm((prev: any) => ({
+      ...prev,
+      sequence: [...(prev.sequence || []), { delayDays: 1, subject: '', body: '' }]
+    }));
+  };
+
+  const removeSequenceStep = (index: number) => {
+    setForm((prev: any) => {
+      const newSeq = [...(prev.sequence || [])];
+      newSeq.splice(index, 1);
+      return { ...prev, sequence: newSeq };
+    });
+  };
+
+  const updateSequenceStep = (index: number, field: string, value: any) => {
+    setForm((prev: any) => {
+      const newSeq = [...(prev.sequence || [])];
+      newSeq[index] = { ...newSeq[index], [field]: value };
+      return { ...prev, sequence: newSeq };
+    });
+  };
+
   return (
-    <div className="glass-card compose-card">
+    <div className="ds-panel compose-card">
       <div className="compose-header">
         <h2 className="compose-title">Compose Email</h2>
         {openAiKey && (
@@ -94,25 +126,87 @@ export const ComposeEmailCard: React.FC<ComposeEmailProps> = ({
         </div>
       )}
 
-      <div className="form-group">
-        <label className="form-label">Subject</label>
-        <input
-          type="text"
-          value={form.subject}
-          onChange={(e) => setForm((prev: any) => ({ ...prev, subject: e.target.value }))}
-          placeholder="Email subject line..."
-          className="input-style"
-        />
-      </div>
-
       {form.type !== 'drip_campaign' && (
+        <>
+          <div className="form-group">
+            <label className="form-label">Subject</label>
+            <input
+              type="text"
+              value={form.subject}
+              onChange={(e) => setForm((prev: any) => ({ ...prev, subject: e.target.value }))}
+              placeholder="Email subject line..."
+              className="input-style"
+            />
+          </div>
+          <div style={{ marginBottom: '20px' }}>
+            <label className="form-label">Body</label>
+            <RichTextEditor
+              value={form.body}
+              onChange={(val) => setForm((prev: any) => ({ ...prev, body: val }))}
+              placeholder="Write your email content..."
+            />
+          </div>
+        </>
+      )}
+
+      {form.type === 'drip_campaign' && (
         <div style={{ marginBottom: '20px' }}>
-          <label className="form-label">Body</label>
-          <RichTextEditor
-            value={form.body}
-            onChange={(val) => setForm((prev: any) => ({ ...prev, body: val }))}
-            placeholder="Write your email content..."
-          />
+          <div className="form-group">
+            <label className="form-label">Campaign Name</label>
+            <input
+              type="text"
+              value={form.subject}
+              onChange={(e) => setForm((prev: any) => ({ ...prev, subject: e.target.value }))}
+              placeholder="e.g. Q3 Outreach Sequence"
+              className="input-style"
+            />
+          </div>
+          <h3 className="form-label" style={{ marginTop: '24px', marginBottom: '12px' }}>Email Sequence</h3>
+          {(form.sequence || []).map((step: any, idx: number) => (
+            <div key={idx} className="sequence-step-card">
+              <div className="sequence-header">
+                <span className="sequence-title">Step {idx + 1}</span>
+                <button 
+                  onClick={() => removeSequenceStep(idx)}
+                  className="btn-secondary"
+                  style={{ padding: '4px 8px', color: 'var(--danger)', borderColor: 'var(--danger)', opacity: 0.8 }}
+                >
+                  <Trash2 size={12} /> Remove
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', alignItems: 'center' }}>
+                <label className="form-label" style={{ margin: 0 }}>Delay (Days):</label>
+                <input 
+                  type="number"
+                  min="0"
+                  value={step.delayDays}
+                  onChange={(e) => updateSequenceStep(idx, 'delayDays', parseInt(e.target.value) || 0)}
+                  className="input-style"
+                  style={{ width: '80px', padding: '6px 10px' }}
+                />
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Days after previous step</span>
+              </div>
+              <div style={{ marginBottom: '12px' }}>
+                <input
+                  type="text"
+                  value={step.subject}
+                  onChange={(e) => updateSequenceStep(idx, 'subject', e.target.value)}
+                  placeholder="Subject line..."
+                  className="input-style"
+                />
+              </div>
+              <div>
+                <RichTextEditor
+                  value={step.body}
+                  onChange={(val) => updateSequenceStep(idx, 'body', val)}
+                  placeholder="Email body..."
+                />
+              </div>
+            </div>
+          ))}
+          <button onClick={addSequenceStep} className="btn-secondary" style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }}>
+            <Plus size={16} /> Add Step
+          </button>
         </div>
       )}
 

@@ -28,6 +28,26 @@ export default function BillingPage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch('/api/billing/status', {
+          headers: { Authorization: `Bearer ${user?.accessToken}` }
+        });
+        const data = await res.json();
+        if (data.status === 'success' && data.active && data.plan) {
+          const planName = plans.find(p => p.id === data.plan)?.name || data.plan;
+          setCurrentPlan(planName);
+        } else {
+          setCurrentPlan(null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch plan status', err);
+      }
+    };
+    if (user?.accessToken) fetchStatus();
+  }, [user]);
+
   const handleSubscribe = async (planId) => {
     setLoading(true);
     try {
@@ -64,7 +84,7 @@ export default function BillingPage() {
       </div>
 
       {currentPlan && (
-        <div className="glass-card" style={{ padding: '20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="ds-panel" style={{ padding: '20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Current Plan: </span>
             <span style={{ fontSize: '16px', fontWeight: 600 }}>{currentPlan}</span>
@@ -77,7 +97,7 @@ export default function BillingPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', maxWidth: '1000px' }}>
         {plans.map((plan) => (
-          <div key={plan.id} className="glass-card" style={{ padding: '28px', display: 'flex', flexDirection: 'column', border: plan.id === 'pro' ? '2px solid var(--accent-primary)' : '1px solid var(--border)' }}>
+          <div key={plan.id} className="ds-panel" style={{ padding: '28px', display: 'flex', flexDirection: 'column', border: plan.id === 'pro' ? '2px solid var(--accent-primary)' : '1px solid var(--border)' }}>
             {plan.id === 'pro' && <span style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--accent-primary)', color: 'white', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: 600 }}>MOST POPULAR</span>}
             <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '4px' }}>{plan.name}</h3>
             <div style={{ fontSize: '32px', fontWeight: 700, margin: '12px 0', color: 'var(--accent-primary)' }}>{plan.price}</div>

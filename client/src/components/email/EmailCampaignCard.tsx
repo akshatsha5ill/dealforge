@@ -1,5 +1,5 @@
 import React from 'react';
-import { Send, Trash2 } from 'lucide-react';
+import { Send, Trash2, Pause, Play } from 'lucide-react';
 import './Email.css';
 
 interface EmailCampaignCardProps {
@@ -9,6 +9,7 @@ interface EmailCampaignCardProps {
   getLeadEmail: (id: string) => string;
   handleSendDraft: (campaign: any) => void;
   handleDelete: (id: string) => void;
+  handleToggleDripStatus?: (id: string, newStatus: string) => void;
 }
 
 export const EmailCampaignCard: React.FC<EmailCampaignCardProps> = ({
@@ -18,6 +19,7 @@ export const EmailCampaignCard: React.FC<EmailCampaignCardProps> = ({
   getLeadEmail,
   handleSendDraft,
   handleDelete,
+  handleToggleDripStatus,
 }) => {
   const status = statusConfig[campaign.status] || statusConfig.draft;
   const StatusIcon = status.icon;
@@ -31,7 +33,7 @@ export const EmailCampaignCard: React.FC<EmailCampaignCardProps> = ({
     : '—';
 
   return (
-    <div className="glass-card campaign-card">
+    <div className="ds-panel campaign-card">
       <div className="status-icon-wrapper" style={{ backgroundColor: status.bg }}>
         <StatusIcon size={18} style={{ color: status.color }} />
       </div>
@@ -73,6 +75,14 @@ export const EmailCampaignCard: React.FC<EmailCampaignCardProps> = ({
                 <Trash2 size={12} />
               </button>
             </>
+          )}
+          {campaign.isDrip && campaign.rawStatus !== 'completed' && handleToggleDripStatus && (
+            <button
+              onClick={() => handleToggleDripStatus(campaign.id, campaign.rawStatus === 'active' ? 'paused' : 'active')}
+              style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+            >
+              {campaign.rawStatus === 'active' ? <><Pause size={12} /> Pause</> : <><Play size={12} /> Resume</>}
+            </button>
           )}
         </div>
       </div>

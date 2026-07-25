@@ -145,3 +145,41 @@ export function buildMeetingFrequencyData(meetings: MeetingData[], days: number)
 
    return Object.entries(data).map(([date, count]) => ({ date, count }));
 }
+
+export function buildPipelineVelocity(deals: DealData[]) {
+  const wonDeals = deals.filter(d => d.stage === 'won' && d.createdAt && d.updatedAt);
+  if (wonDeals.length === 0) return 0;
+  
+  let totalDays = 0;
+  for (const d of wonDeals) {
+    const start = new Date(d.createdAt).getTime();
+    const end = new Date(d.updatedAt).getTime();
+    const days = (end - start) / (1000 * 60 * 60 * 24);
+    totalDays += Math.max(0, days);
+  }
+  
+  return Math.round(totalDays / wonDeals.length);
+}
+
+export function buildLeadScoreTrend(leads: LeadData[]) {
+  const daysMap: Record<string, { totalScore: number; count: number }> = {};
+  
+  for (const l of leads) {
+    if (l.createdAt && l.score !== undefined) {
+      const dateStr = new Date(l.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      if (!daysMap[dateStr]) {
+        daysMap[dateStr] = { totalScore: 0, count: 0 };
+      }
+      daysMap[dateStr].totalScore += l.score;
+      daysMap[dateStr].count += 1;
+    }
+  }
+  
+  const result = Object.entries(daysMap).map(([date, data]) => ({
+    name: date,
+    score: Math.round(data.totalScore / data.count)
+  }));
+  
+  // Sort by parsing the date (assuming current year for simplicity)
+  return result.sort((a, b) => new Date(`${a.name} 2024`).getTime() - new Date(`${b.name} 2024`).getTime());
+}
