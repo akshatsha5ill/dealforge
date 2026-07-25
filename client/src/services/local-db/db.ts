@@ -29,13 +29,13 @@ export class DealForgeDatabase extends Dexie {
       meetings: 'id, zoomMeetingId, title, startTime, endTime, duration, status, [status+startTime]',
       leads: 'id, meetingId, name, email, company, role, score, stage, createdAt, [stage+createdAt]',
       settings: 'key'
-    }).upgrade(tx => {
+    }).upgrade(_tx => {
       // Indexes added, no data migration needed
     });
 
     this.version(3).stores({
       drip_campaigns: 'id, leadId, name, status, currentStep, nextRunAt, createdAt'
-    }).upgrade(tx => {
+    }).upgrade(_tx => {
     });
 
     // Version 4: Optimize indexes by removing bloated/unused indexes 
@@ -49,7 +49,7 @@ export class DealForgeDatabase extends Dexie {
       email_campaigns: 'id, leadId, status',
       email_tracking: 'id, campaignId',
       drip_campaigns: 'id, leadId, status'
-    }).upgrade(tx => {
+    }).upgrade(_tx => {
       // Dropping unneeded indexes to optimize writes and storage size
     });
   }
