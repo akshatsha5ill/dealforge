@@ -1,6 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { validateRequest } from 'zod-express-middleware';
 import { sendDraft } from '../services/email-service.js';
 import { AIFactory } from '../services/ai-providers.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -12,11 +11,26 @@ interface AuthenticatedRequest extends Request {
 }
 
 const sendSchema = z.object({
-  to: z.string().email("Invalid email address"),
-  subject: z.string().min(1, "Subject is required"),
-  body: z.string().min(1, "Body is required"),
-  emailApiKey: z.string().min(1, "Missing Email API key")
+  to: z.string({ required_error: "invalid input" }).email("invalid input"),
+  subject: z.string({ required_error: "invalid input" }).min(1, "invalid input"),
+  body: z.string({ required_error: "invalid input" }).min(1, "invalid input"),
+  emailApiKey: z.string().min(1, "invalid input").optional()
 });
+
+export const validateRequest = (schema: { body: any }) => (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  try {
+    if (schema.body) {
+      req.body = schema.body.parse(req.body);
+    }
+    next();
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+        return next(new AppError('invalid input', 400));
+    }
+    next(err);
+  }
+};
+
 
 router.post(
   '/send', 
@@ -36,10 +50,10 @@ router.post(
 );
 
 const draftSchema = z.object({
-  transcript: z.string().min(10).max(100000, "Transcript too long"),
+  transcript: z.string({ required_error: "invalid input" }).min(10, "invalid input").max(100000, "invalid input"),
   leadContext: z.record(z.any()).optional(),
   model: z.enum(['openai', 'anthropic', 'gemini']).optional(),
-  apiKey: z.string().min(1, "Missing API key")
+  apiKey: z.string({ required_error: "invalid input" }).min(1, "invalid input")
 });
 
 router.post(

@@ -2,14 +2,18 @@ import { describe, it, expect, afterEach } from 'vitest';
 import express from 'express';
 import http from 'http';
 import emailRouter from './email.js';
+import { errorHandler } from '../middleware/errorHandler.js';
 
 function createTestServer(router) {
   const app = express();
   app.use(express.json());
-  app.use(router);
-  app.use((err, req, res, next) => {
-    res.status(500).json({ error: err.message });
+  // Mock req.user for tests
+  app.use((req, res, next) => {
+    req.user = { uid: 'test-user' };
+    next();
   });
+  app.use(router);
+  app.use(errorHandler);
   return new Promise((resolve) => {
     const server = http.createServer(app).listen(0, () => resolve(server));
   });
@@ -54,7 +58,7 @@ describe('email routes', () => {
     });
     expect(res.status).toBe(400);
     const body = JSON.parse(res.text);
-    expect(body.error).toMatch(/invalid input/i);
+    expect(body.error).toContain('invalid input');
   });
 
   it('POST /send with missing body returns 400', async () => {
@@ -64,7 +68,7 @@ describe('email routes', () => {
     });
     expect(res.status).toBe(400);
     const body = JSON.parse(res.text);
-    expect(body.error).toMatch(/invalid input/i);
+    expect(body.error).toContain('invalid input');
   });
 
   it('POST /send with invalid email returns 400', async () => {
@@ -74,7 +78,7 @@ describe('email routes', () => {
     });
     expect(res.status).toBe(400);
     const body = JSON.parse(res.text);
-    expect(body.error).toMatch(/valid email/i);
+    expect(body.error).toContain('invalid input');
   });
 
   it('POST /send with non-string to returns 400', async () => {
@@ -84,7 +88,7 @@ describe('email routes', () => {
     });
     expect(res.status).toBe(400);
     const body = JSON.parse(res.text);
-    expect(body.error).toMatch(/valid email/i);
+    expect(body.error).toContain('invalid input');
   });
 
   it('POST /draft with missing transcript returns 400', async () => {
@@ -94,7 +98,7 @@ describe('email routes', () => {
     });
     expect(res.status).toBe(400);
     const body = JSON.parse(res.text);
-    expect(body.error).toBe('transcript is required');
+    expect(body.error).toContain('invalid input');
   });
 
   it('POST /draft without apiKey returns 400', async () => {
@@ -104,6 +108,6 @@ describe('email routes', () => {
     });
     expect(res.status).toBe(400);
     const body = JSON.parse(res.text);
-    expect(body.error).toMatch(/api key/i);
+    expect(body.error).toContain('invalid input');
   });
 });

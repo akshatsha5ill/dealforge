@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import express from 'express';
 import http from 'http';
+import { errorHandler } from '../middleware/errorHandler.js';
 
 describe('Zoom Routes', () => {
   let server;
@@ -10,13 +11,15 @@ describe('Zoom Routes', () => {
       await new Promise((resolve) => server.close(resolve));
       server = null;
     }
+    vi.clearAllMocks();
   });
 
   it('should return 400 if no code is provided', async () => {
     const app = express();
     app.use(express.json());
-    const zoomRoutes = require('./zoom');
+    const { default: zoomRoutes } = await import('./zoom.js');
     app.use('/api/zoom', zoomRoutes);
+    app.use(errorHandler);
     server = http.createServer(app);
     await new Promise((resolve) => server.listen(0, resolve));
     const port = server.address().port;
@@ -37,8 +40,9 @@ describe('Zoom Routes', () => {
     delete process.env.ZOOM_WEBHOOK_SECRET_TOKEN;
     const app = express();
     app.use(express.json());
-    const zoomRoutes = require('./zoom');
+    const { default: zoomRoutes } = await import('./zoom.js');
     app.use('/api/zoom', zoomRoutes);
+    app.use(errorHandler);
     server = http.createServer(app);
     await new Promise((resolve) => server.listen(0, resolve));
     const port = server.address().port;
@@ -55,8 +59,9 @@ describe('Zoom Routes', () => {
     process.env.ZOOM_WEBHOOK_SECRET_TOKEN = 'test-secret';
     const app = express();
     app.use(express.json());
-    const zoomRoutes = require('./zoom');
+    const { default: zoomRoutes } = await import('./zoom.js');
     app.use('/api/zoom', zoomRoutes);
+    app.use(errorHandler);
     server = http.createServer(app);
     await new Promise((resolve) => server.listen(0, resolve));
     const port = server.address().port;
@@ -72,8 +77,9 @@ describe('Zoom Routes', () => {
   it('should return 401 for transcription without auth', async () => {
     const app = express();
     app.use(express.json());
-    const zoomRoutes = require('./zoom');
+    const { default: zoomRoutes } = await import('./zoom.js');
     app.use('/api/zoom', zoomRoutes);
+    app.use(errorHandler);
     server = http.createServer(app);
     await new Promise((resolve) => server.listen(0, resolve));
     const port = server.address().port;
@@ -89,8 +95,9 @@ describe('Zoom Routes', () => {
   it('should return 401 for notes without auth', async () => {
     const app = express();
     app.use(express.json());
-    const zoomRoutes = require('./zoom');
+    const { default: zoomRoutes } = await import('./zoom.js');
     app.use('/api/zoom', zoomRoutes);
+    app.use(errorHandler);
     server = http.createServer(app);
     await new Promise((resolve) => server.listen(0, resolve));
     const port = server.address().port;
