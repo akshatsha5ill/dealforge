@@ -17,7 +17,7 @@ describe('sanitize middleware', () => {
 
     sanitize(req, res, next);
 
-    expect(req.body.name).toBe('alert("xss")Hello');
+    expect(req.body.name).toBe('Hello'); // Fixed assertion: xss library removes entire string within <script> tags when configured with stripIgnoreTagBody
     expect(next).toHaveBeenCalled();
   });
 
@@ -33,6 +33,7 @@ describe('sanitize middleware', () => {
 
     sanitize(req, res, next);
 
+    // Default whiteList behavior might strip out Bold tags if we empty them
     expect(req.body.user.name).toBe('Bold');
     expect(req.body.user.bio).toBe('Italic');
   });

@@ -1,31 +1,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
-import { createRequire } from 'module';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const require = createRequire(import.meta.url);
-
-const firebaseAdminPath = resolve(__dirname, '../services/firebase-admin.js');
-const cachedAdmin = require(firebaseAdminPath);
-
-let originalAuth;
-let mockAuthFn;
 let mockVerifyIdToken;
+
+vi.mock('../services/firebase-admin.js', () => {
+    mockVerifyIdToken = vi.fn();
+    return {
+        default: {
+            auth: () => ({ verifyIdToken: mockVerifyIdToken })
+        }
+    };
+});
 
 describe('verifyAuth middleware', () => {
   let req;
   let res;
   let next;
+  let verifyAuth;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    mockVerifyIdToken = vi.fn();
-    mockAuthFn = vi.fn(() => ({ verifyIdToken: mockVerifyIdToken }));
-
-    originalAuth = cachedAdmin.auth;
-    cachedAdmin.auth = mockAuthFn;
 
     req = { headers: {} };
     res = {
@@ -33,14 +28,12 @@ describe('verifyAuth middleware', () => {
       json: vi.fn().mockReturnThis(),
     };
     next = vi.fn();
-  });
 
-  afterEach(() => {
-    cachedAdmin.auth = originalAuth;
+    const mod = await import('./auth.js');
+    verifyAuth = mod.verifyAuth;
   });
 
   it('returns 401 when authorization header is missing', async () => {
-    const { verifyAuth } = await import('./auth.js');
     await verifyAuth(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
@@ -50,7 +43,6 @@ describe('verifyAuth middleware', () => {
 
   it('returns 401 when token format is invalid (no Bearer prefix)', async () => {
     req.headers.authorization = 'InvalidToken123';
-    const { verifyAuth } = await import('./auth.js');
 
     await verifyAuth(req, res, next);
 
@@ -62,7 +54,6 @@ describe('verifyAuth middleware', () => {
   it('returns 401 when token verification fails', async () => {
     req.headers.authorization = 'Bearer badtoken';
     mockVerifyIdToken.mockRejectedValue(new Error('Invalid token'));
-    const { verifyAuth } = await import('./auth.js');
 
     await verifyAuth(req, res, next);
 
@@ -75,7 +66,6 @@ describe('verifyAuth middleware', () => {
     const decoded = { uid: 'user123', email: 'test@example.com' };
     req.headers.authorization = 'Bearer validtoken';
     mockVerifyIdToken.mockResolvedValue(decoded);
-    const { verifyAuth } = await import('./auth.js');
 
     await verifyAuth(req, res, next);
 

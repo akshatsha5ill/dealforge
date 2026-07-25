@@ -1,37 +1,37 @@
 import { Request, Response, NextFunction } from 'express';
 import log from '../utils/logger.js';
+import { ZodError } from 'zod';
 
 export class AppError extends Error {
   public statusCode: number;
   public isOperational: boolean;
 
-  constructor(message: string, statusCode: number = 500, isOperational: boolean = true) {
+  constructor(message: string, statusCode: number) {
     super(message);
     this.statusCode = statusCode;
-    this.isOperational = isOperational;
+    this.isOperational = true;
+
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-  const requestId = (req as any).requestId;
-  
+  // Only log full errors for actual server faults, not validation errors
+  if (!err.statusCode || err.statusCode >= 500) {
+      log.error(err.message || 'Internal Server Error', { stack: err.stack, path: req.path });
+  }
+
+  // Handle manual AppErrors
   if (err instanceof AppError) {
-    if (err.statusCode >= 500) {
-      log.error('Server Error', { message: err.message, stack: err.stack, requestId });
-    } else {
-      log.warn('Client Error', { message: err.message, requestId });
-    }
     return res.status(err.statusCode).json({
       status: 'error',
-      error: err.message
+      error: err.message,
     });
   }
 
-  log.error('Unhandled Error', { message: err.message, stack: err.stack, requestId });
-  
-  return res.status(500).json({
+  // Fallback for general errors
+  return res.status(err.status || err.statusCode || 500).json({
     status: 'error',
-    error: 'Internal Server Error'
+    error: err.status === 400 || err.statusCode === 400 ? (err.message || 'invalid input') : 'Internal Server Error',
   });
 };

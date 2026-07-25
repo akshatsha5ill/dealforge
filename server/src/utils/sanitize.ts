@@ -1,8 +1,14 @@
 import xss from 'xss';
 
+const myXss = new xss.FilterXSS({
+  whiteList: {}, // empty, means filter out all tags
+  stripIgnoreTag: true,
+  stripIgnoreTagBody: ['script'] // the script tag is a special case, we need to filter out its content
+});
+
 export const sanitizeObject = (obj: any): any => {
   if (typeof obj === 'string') {
-    return xss(obj);
+    return myXss.process(obj);
   }
   if (Array.isArray(obj)) {
     return obj.map(sanitizeObject);

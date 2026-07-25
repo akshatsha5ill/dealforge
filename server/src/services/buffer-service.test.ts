@@ -3,10 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 describe('Buffer Service', () => {
   let bufferService;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
-    bufferService = require('../services/buffer-service');
-    bufferService.buffer.clear();
+    bufferService = (await import('../services/buffer-service.js')).default;
+    if (bufferService.buffer) {
+        bufferService.buffer.clear();
+    } else {
+        (bufferService as any).buffer.clear();
+    }
   });
 
   it('should store and retrieve data', () => {
