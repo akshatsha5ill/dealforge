@@ -1,6 +1,111 @@
-import { Link, Navigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { ArrowRight, Activity, Calendar, Zap, Mail, Shield } from 'lucide-react';
 import { useStore } from '../store';
+import { loginWithGoogle, loginWithEmail, registerWithEmail } from '../services/firebase/auth';
+import GoogleIcon from '../components/GoogleIcon';
+
+function AuthPanel() {
+  const navigate = useNavigate();
+  const [isRegister, setIsRegister] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await loginWithGoogle();
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Google sign in failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailSubmit = async (e: any) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      if (isRegister) {
+        await registerWithEmail(email, password);
+      } else {
+        await loginWithEmail(email, password);
+      }
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ fontSize: '11px', fontVariant: 'small-caps', letterSpacing: '0.12em', color: 'var(--text-muted)', paddingBottom: '14px', borderBottom: '1px solid var(--border)', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span className="label-text">{isRegister ? 'Initialize Account' : 'Authenticate'}</span>
+        <em style={{ fontFamily: 'var(--font-body)', fontStyle: 'italic', fontSize: '12px', fontVariant: 'normal', letterSpacing: 0, textTransform: 'none' }}>{isRegister ? 'create access' : 'credentials'}</em>
+      </div>
+
+      {error && (
+        <div style={{ backgroundColor: 'rgba(138, 35, 23, 0.08)', borderLeft: '2px solid var(--primary)', padding: '10px 14px', marginBottom: '16px', color: 'var(--primary)', fontSize: '13px' }}>
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleEmailSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <input
+          className="ds-input"
+          type="email"
+          placeholder="Email Address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          className="ds-input"
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <button type="submit" className="ds-btn-primary" style={{ marginTop: '4px', width: '100%', justifyContent: 'center' }} disabled={loading}>
+          {loading ? 'Please wait…' : isRegister ? 'Create Account' : 'Sign In'}
+        </button>
+      </form>
+
+      <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', gap: '16px' }}>
+        <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border)' }}></div>
+        <span className="label-text" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>OR</span>
+        <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border)' }}></div>
+      </div>
+
+      <button
+        onClick={handleGoogleLogin}
+        className="ds-btn-ghost"
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: '1px solid var(--border)' }}
+        disabled={loading}
+      >
+        <GoogleIcon /> Sign in with Google
+      </button>
+
+      <div style={{ marginTop: '20px', textAlign: 'center' }}>
+        <button
+          onClick={() => { setIsRegister(!isRegister); setError(''); }}
+          className="ds-btn-ghost"
+          style={{ fontSize: '13px', borderBottom: 'none' }}
+        >
+          {isRegister ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function LandingPage() {
   const isAuthenticated = useStore((state) => state.isAuthenticated);
@@ -66,26 +171,7 @@ export default function LandingPage() {
             </div>
             
             <aside style={{ borderLeft: '1px solid var(--border)', paddingLeft: '36px' }}>
-              <div style={{ fontSize: '11px', fontVariant: 'small-caps', letterSpacing: '0.12em', color: 'var(--text-muted)', paddingBottom: '14px', borderBottom: '1px solid var(--border)', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span className="label-text">The Architecture</span>
-                <em style={{ fontFamily: 'var(--font-body)', fontStyle: 'italic', fontSize: '12px', fontVariant: 'normal', letterSpacing: 0, textTransform: 'none' }}>three core pillars</em>
-              </div>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {[
-                  { id: '01', title: 'AI Lead Scoring', desc: 'Live sentiment analysis', state: 'active' },
-                  { id: '02', title: 'Pipeline Velocity', desc: 'Visual board management', state: 'active' },
-                  { id: '03', title: 'Automated Drips', desc: 'Hyper-personalized sequences', state: 'active' }
-                ].map((item, idx) => (
-                  <li key={idx} style={{ display: 'grid', gridTemplateColumns: '40px 1fr auto', gap: '14px', alignItems: 'baseline', padding: '14px 0', borderBottom: '1px dotted var(--border)', fontSize: '14px', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.margin = '0 -8px'; e.currentTarget.style.paddingLeft = '8px'; e.currentTarget.style.paddingRight = '8px'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.margin = '0'; e.currentTarget.style.paddingLeft = '0'; e.currentTarget.style.paddingRight = '0'; }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-muted)' }}>{item.id}</span>
-                    <span style={{ color: 'var(--text-primary)' }}>{item.title} <em style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '12px' }}>({item.desc})</em></span>
-                    <span style={{ fontSize: '9px', fontVariant: 'small-caps', letterSpacing: '0.08em', padding: '2px 7px', border: '1px solid var(--tertiary)', color: 'var(--tertiary)', whiteSpace: 'nowrap' }}>{item.state}</span>
-                  </li>
-                ))}
-              </ul>
-              <div style={{ marginTop: '18px', fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'right' }}>
-                Privacy · Local-First
-              </div>
+              <AuthPanel />
             </aside>
           </div>
         </div>
