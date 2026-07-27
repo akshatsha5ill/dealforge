@@ -15,6 +15,7 @@ export default function MeetingDetailPage() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -29,6 +30,8 @@ export default function MeetingDetailPage() {
         setAnalysis(analysisData?.summary ? analysisData : null);
       } catch (err) {
         console.error('Failed to load meeting:', err);
+      } finally {
+        setInitialLoading(false);
       }
     };
     fetchData();
@@ -39,7 +42,12 @@ export default function MeetingDetailPage() {
     setError('');
     try {
       const transcriptText = transcript?.fullText || 'No transcript available for this meeting.';
-      const apiKey = openAiKey || anthropicKey || 'test';
+      const apiKey = openAiKey || anthropicKey;
+      if (!apiKey) {
+        setError('Please set an API key in Settings before analyzing.');
+        setLoading(false);
+        return;
+      }
       const model = openAiKey ? 'openai' : 'anthropic';
       const result = await analyzeMeeting(transcriptText, id, apiKey, model);
 
@@ -65,12 +73,23 @@ export default function MeetingDetailPage() {
     }
   };
 
-  if (!meeting) {
+  if (initialLoading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
         <div style={{ width: '32px', height: '32px', border: '3px solid var(--border)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
         Loading meeting...
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (!meeting) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <p style={{ fontSize: '16px', marginBottom: '16px' }}>Meeting not found.</p>
+        <Link to="/dashboard/meetings" style={{ color: 'var(--accent-primary)', textDecoration: 'none', fontSize: '14px' }}>
+          &larr; Back to Meetings
+        </Link>
       </div>
     );
   }
@@ -83,7 +102,7 @@ export default function MeetingDetailPage() {
   return (
     <div className="animate-fade-in">
       <div style={{ marginBottom: '20px' }}>
-        <Link to="/meetings" style={{ color: 'var(--accent-primary)', textDecoration: 'none', fontSize: '14px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        <Link to="/dashboard/meetings" style={{ color: 'var(--accent-primary)', textDecoration: 'none', fontSize: '14px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
           &larr; Back to Meetings
         </Link>
       </div>

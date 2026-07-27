@@ -11,15 +11,13 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.115.0",
-    "@google/genai": "^2.13.0",
+    "@sentry/react": "^10.68.0",
     "@types/dompurify": "^3.2.0",
     "@zoom/appssdk": "^0.16.14",
     "dexie": "^4.4.4",
     "dompurify": "^3.4.12",
     "firebase": "^12.16.0",
     "lucide-react": "^1.25.0",
-    "openai": "^6.49.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",

@@ -14,7 +14,7 @@ describe('Error Handler Middleware', () => {
 
     errorHandler(err, req, res, next);
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Custom error' });
+    expect(res.json).toHaveBeenCalledWith({ status: 'error', error: 'Custom error' });
   });
 
   it('handles unknown errors gracefully', () => {
@@ -28,6 +28,6 @@ describe('Error Handler Middleware', () => {
 
     errorHandler(err, req, res, next);
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ status: 'error', message: 'Internal server error' });
+    expect(res.json).toHaveBeenCalledWith({ status: 'error', error: 'Internal Server Error' });
   });
 });

@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
-import aiRouter from './ai';
-import { analyzeMeeting } from '../services/ai-service';
+import aiRouter from './ai.js';
+import { analyzeMeeting } from '../services/ai-service.js';
 
 // Mock the AI service
-vi.mock('../services/ai-service', () => ({
+vi.mock('../services/ai-service.js', () => ({
   analyzeMeeting: vi.fn()
 }));
 
 // We can mock AIFactory directly
-vi.mock('../services/ai-providers', () => {
+vi.mock('../services/ai-providers.js', () => {
   return {
     AIFactory: {
       getProvider: vi.fn().mockReturnValue({

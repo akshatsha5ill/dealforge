@@ -13,6 +13,6 @@ export const useStore = create<StoreState>()((set, get, api) => ({
   
   logout: () => {
     disconnectSocket();
-    set({ user: null, isAuthenticated: false, openAiKey: '', anthropicKey: '', geminiKey: '' });
+    set({ user: null, isAuthenticated: false, openAiKey: '', anthropicKey: '', geminiKey: '', resendKey: '' });
   }
 }));

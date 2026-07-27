@@ -6,8 +6,9 @@ import bufferService from '../services/buffer-service.js';
 import { verifyAuth } from '../middleware/auth.js';
 import { config } from '../config.js';
 import { z } from 'zod';
-import { validateRequest } from './email.js';
+import { validateRequest } from '../middleware/validateRequest.js';
 import { AppError } from '../middleware/errorHandler.js';
+import log from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -49,12 +50,35 @@ router.get('/oauth/callback', async (req: Request, res: Response, next: express.
         });
       });
       request.on('error', reject);
+      request.setTimeout(10000, () => {
+        request.destroy();
+        reject(new Error('Zoom token exchange timed out'));
+      });
       request.write(body);
       request.end();
     });
 
     if (tokenRes.error) {
       return next(new AppError(tokenRes.reason || tokenRes.error, 400));
+    }
+
+    // Persist tokens to the authenticated user's Firestore document
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const idToken = authHeader.split('Bearer ')[1];
+        const decoded = await admin.auth().verifyIdToken(idToken);
+        await admin.firestore().collection('users').doc(decoded.uid).set({
+          zoomLinked: true,
+          zoomAccessToken: tokenRes.access_token,
+          zoomRefreshToken: tokenRes.refresh_token,
+          zoomTokenExpiresAt: tokenRes.expires_in
+            ? Date.now() + tokenRes.expires_in * 1000
+            : null,
+        }, { merge: true });
+      } catch {
+        // Token exchange succeeded but persistence failed — still return the token info
+      }
     }
 
     return res.json({
@@ -66,9 +90,9 @@ router.get('/oauth/callback', async (req: Request, res: Response, next: express.
   }
 });
 
-router.post('/webhook', (req: Request, res: Response, next: express.NextFunction): any => {
+router.post('/webhook', async (req: Request, res: Response, next: express.NextFunction): Promise<any> => {
   const { event, payload } = req.body;
-  const secret = process.env.ZOOM_WEBHOOK_SECRET_TOKEN || config.zoom.webhookSecretToken; // ensure we fallback to env to pass tests easily
+  const secret = process.env.ZOOM_WEBHOOK_SECRET_TOKEN || config.zoom.webhookSecretToken;
 
   if (!secret) {
      return next(new AppError('Server configuration error', 500));
@@ -103,18 +127,18 @@ router.post('/webhook', (req: Request, res: Response, next: express.NextFunction
     case 'meeting.started': {
       const meetingId = payload?.object?.id;
       if (meetingId) {
-        bufferService.store(`meeting:${meetingId}`, { startedAt: new Date().toISOString(), status: 'active' });
+        await bufferService.store(`meeting:${meetingId}`, { startedAt: new Date().toISOString(), status: 'active' });
       }
       break;
     }
     case 'meeting.ended': {
       const meetingId = payload?.object?.id;
       if (meetingId) {
-        const data = bufferService.get<any>(`meeting:${meetingId}`);
+        const data = await bufferService.get<any>(`meeting:${meetingId}`);
         if (data) {
           data.endedAt = new Date().toISOString();
           data.status = 'completed';
-          bufferService.store(`meeting:${meetingId}`, data);
+          await bufferService.store(`meeting:${meetingId}`, data);
         }
         const io = req.app.get('io');
         if (io) {
@@ -129,10 +153,10 @@ router.post('/webhook', (req: Request, res: Response, next: express.NextFunction
       const participant = payload?.object?.participant;
       if (meetingId && participant) {
         const key = `participants:${meetingId}`;
-        const existing = bufferService.get<any>(key) || { participants: [] };
+        const existing = (await bufferService.get<any>(key)) || { participants: [] };
         if (!existing.participants.find((p: any) => p.user_id === participant.user_id || p.user_name === participant.user_name)) {
           existing.participants.push(participant);
-          bufferService.store(key, existing);
+          await bufferService.store(key, existing);
         }
 
         const io = req.app.get('io');
@@ -177,7 +201,7 @@ router.post('/deauth', async (req: Request, res: Response, next: express.NextFun
   const userId = payload?.user_id;
   const accountId = payload?.account_id;
   
-  console.log(`Deauth event received for user ${userId}, account ${accountId}`);
+  log.info(`Deauth event received for user ${userId}, account ${accountId}`);
   
   if (userId) {
     try {
@@ -193,7 +217,7 @@ router.post('/deauth', async (req: Request, res: Response, next: express.NextFun
       });
       await Promise.all(promises);
     } catch (err) {
-      console.error('Failed to clean up user on deauth', err);
+      log.error('Failed to clean up user on deauth', { error: err });
     }
   }
   
@@ -202,16 +226,16 @@ router.post('/deauth', async (req: Request, res: Response, next: express.NextFun
 
 const transcriptionSchema = z.object({
   meetingId: z.string().min(1),
-  segment: z.any() // Could be typed more strictly
+  segment: z.any()
 });
 
-router.post('/transcription', verifyAuth, validateRequest({ body: transcriptionSchema }), (req: Request, res: Response, next: express.NextFunction): any => {
+router.post('/transcription', verifyAuth, validateRequest({ body: transcriptionSchema }), async (req: Request, res: Response, next: express.NextFunction): Promise<any> => {
   const { meetingId, segment } = req.body;
 
   const key = `transcript:${meetingId}`;
-  const existing = bufferService.get<any>(key) || { segments: [] };
+  const existing = (await bufferService.get<any>(key)) || { segments: [] };
   existing.segments.push(segment);
-  bufferService.store(key, existing);
+  await bufferService.store(key, existing);
 
   const io = req.app.get('io');
   if (io) {
@@ -226,23 +250,23 @@ const notesSchema = z.object({
   note: z.any()
 });
 
-router.post('/notes', verifyAuth, validateRequest({ body: notesSchema }), (req: Request, res: Response, next: express.NextFunction): any => {
+router.post('/notes', verifyAuth, validateRequest({ body: notesSchema }), async (req: Request, res: Response, next: express.NextFunction): Promise<any> => {
   const { meetingId, note } = req.body;
 
   const key = `notes:${meetingId}`;
-  const existing = bufferService.get<any>(key) || { notes: [] };
+  const existing = (await bufferService.get<any>(key)) || { notes: [] };
   existing.notes.push({ ...note, receivedAt: new Date().toISOString() });
-  bufferService.store(key, existing);
+  await bufferService.store(key, existing);
 
   return res.status(200).json({ status: 'ok' });
 });
 
-router.get('/buffer/:meetingId', verifyAuth, (req: Request, res: Response) => {
+router.get('/buffer/:meetingId', verifyAuth, async (req: Request, res: Response) => {
   const { meetingId } = req.params;
-  const transcript = bufferService.get(`transcript:${meetingId}`);
-  const notes = bufferService.get(`notes:${meetingId}`);
-  const meetingData = bufferService.get(`meeting:${meetingId}`);
-  const participants = bufferService.get(`participants:${meetingId}`);
+  const transcript = await bufferService.get(`transcript:${meetingId}`);
+  const notes = await bufferService.get(`notes:${meetingId}`);
+  const meetingData = await bufferService.get(`meeting:${meetingId}`);
+  const participants = await bufferService.get(`participants:${meetingId}`);
 
   res.status(200).json({
     transcript: transcript || null,
@@ -252,20 +276,12 @@ router.get('/buffer/:meetingId', verifyAuth, (req: Request, res: Response) => {
   });
 });
 
-router.delete('/buffer/:meetingId', verifyAuth, (req: Request, res: Response) => {
+router.delete('/buffer/:meetingId', verifyAuth, async (req: Request, res: Response) => {
   const { meetingId } = req.params;
-  // Make sure it calls buffer.delete, or implement delete on bufferService. The test error indicated bufferService.buffer.delete might be needed
-  if ((bufferService as any).buffer && (bufferService as any).buffer.delete) {
-     (bufferService as any).buffer.delete(`transcript:${meetingId}`);
-     (bufferService as any).buffer.delete(`notes:${meetingId}`);
-     (bufferService as any).buffer.delete(`meeting:${meetingId}`);
-     (bufferService as any).buffer.delete(`participants:${meetingId}`);
-  } else if (bufferService.delete) {
-     bufferService.delete(`transcript:${meetingId}`);
-     bufferService.delete(`notes:${meetingId}`);
-     bufferService.delete(`meeting:${meetingId}`);
-     bufferService.delete(`participants:${meetingId}`);
-  }
+  await bufferService.delete(`transcript:${meetingId}`);
+  await bufferService.delete(`notes:${meetingId}`);
+  await bufferService.delete(`meeting:${meetingId}`);
+  await bufferService.delete(`participants:${meetingId}`);
 
   res.status(200).json({ status: 'cleared' });
 });

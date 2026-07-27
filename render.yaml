@@ -3,8 +3,8 @@ services:
     name: dealforge-server
     runtime: node
     plan: starter
-    buildCommand: npm ci --omit=dev
-    startCommand: node dist/index.js
+    buildCommand: npm ci && npm run build --workspace=server
+    startCommand: node server/dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -22,9 +22,13 @@ services:
         sync: false
       - key: ZOOM_CLIENT_SECRET
         sync: false
+      - key: ZOOM_REDIRECT_URI
+        sync: false
       - key: ZOOM_WEBHOOK_SECRET_TOKEN
         sync: false
       - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
         sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
@@ -35,6 +39,10 @@ services:
       - key: STRIPE_PRO_PRICE_ID
         sync: false
       - key: STRIPE_ENTERPRISE_PRICE_ID
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: SENTRY_DSN
         sync: false
 
   - type: static

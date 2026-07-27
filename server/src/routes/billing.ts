@@ -10,7 +10,18 @@ import log from '../utils/logger.js';
 
 
 const router = express.Router();
-const stripe = new Stripe(config.stripe.secretKey || '');
+
+let stripe: Stripe | null = null;
+const getStripe = (): Stripe => {
+  if (!stripe) {
+    const key = config.stripe.secretKey;
+    if (!key || key.trim() === '') {
+      throw new AppError('Stripe not configured', 503);
+    }
+    stripe = new Stripe(key);
+  }
+  return stripe;
+};
 
 const PLANS = {
   starter: { priceId: config.stripe.starterPriceId, name: 'Starter', meetingsLimit: 50 },
@@ -32,7 +43,7 @@ router.post('/create-checkout-session', verifyAuth, validateRequest({ body: chec
       throw new AppError('Billing is not configured.', 503);
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: PLANS[plan].priceId, quantity: 1 }],
@@ -61,7 +72,7 @@ router.post('/create-portal-session', verifyAuth, async (req: any, res: express.
        throw new AppError('No active subscription found to manage.', 400);
     }
 
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await getStripe().billingPortal.sessions.create({
       customer: customerId,
       return_url: `${config.clientUrl}/settings`,
     });
@@ -77,9 +88,9 @@ router.get('/status', verifyAuth, async (req: any, res: express.Response, next: 
     const userDoc = await admin.firestore().collection('users').doc(req.user.uid).get();
     const data = userDoc.data();
     if (data?.subscription?.status === 'active') {
-      res.json({ status: 'success', plan: data.subscription.plan });
+      res.json({ status: 'success', plan: data.subscription.plan, active: true });
     } else {
-      res.json({ status: 'success', plan: 'starter' });
+      res.json({ status: 'success', plan: 'starter', active: false });
     }
   } catch (error) {
     next(error);
@@ -96,7 +107,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig as string, endpointSecret);
+    event = getStripe().webhooks.constructEvent(req.body, sig as string, endpointSecret);
   } catch (err: any) {
     return res.status(400).json({ error: `Webhook Error: ${err.message}` });
   }

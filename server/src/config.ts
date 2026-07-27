@@ -32,7 +32,17 @@ export const config = {
     resendApiKey: process.env.RESEND_API_KEY,
     from: process.env.EMAIL_FROM || 'DealForge <noreply@dealforge.app>',
   },
-  
+
+  firebase: {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY,
+  },
+
+  redis: {
+    url: process.env.REDIS_URL,
+  },
+
   isProd: process.env.NODE_ENV === 'production',
   isTest: process.env.NODE_ENV === 'test',
 };
@@ -42,7 +52,10 @@ if (config.isProd) {
     ['CLIENT_URL', config.clientUrl],
     ['ZOOM_CLIENT_ID', config.zoom.clientId],
     ['ZOOM_CLIENT_SECRET', config.zoom.clientSecret],
-    ['RESEND_API_KEY', config.email.resendApiKey]
+    ['RESEND_API_KEY', config.email.resendApiKey],
+    ['FIREBASE_PROJECT_ID', config.firebase.projectId],
+    ['FIREBASE_CLIENT_EMAIL', config.firebase.clientEmail],
+    ['FIREBASE_PRIVATE_KEY', config.firebase.privateKey],
   ];
   const missing = required.filter(([, val]) => !val);
   if (missing.length) {

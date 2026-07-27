@@ -3,6 +3,11 @@ import { z } from 'zod';
 import { sendDraft } from '../services/email-service.js';
 import { AIFactory } from '../services/ai-providers.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { config } from '../config.js';
+import { validateRequest } from '../middleware/validateRequest.js';
+
+// Re-export for any existing imports
+export { validateRequest } from '../middleware/validateRequest.js';
 
 const router = express.Router();
 
@@ -17,20 +22,6 @@ const sendSchema = z.object({
   campaignId: z.string().optional(),
   emailApiKey: z.string().min(1, "Missing Email API key")
 });
-
-export const validateRequest = (schema: { body: any }) => (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  try {
-    if (schema.body) {
-      req.body = schema.body.parse(req.body);
-    }
-    next();
-  } catch (err: any) {
-    if (err instanceof z.ZodError) {
-        return next(new AppError('invalid input', 400));
-    }
-    next(err);
-  }
-};
 
 
 router.post(
@@ -113,8 +104,20 @@ router.post(
 
 router.get('/oauth/:provider', (req: Request, res: Response) => {
   const provider = req.params.provider;
-  const redirectUrl = req.query.redirect as string || 'http://localhost:5173/settings';
-  
+  const redirectUrl = req.query.redirect as string || `${config.clientUrl}/settings`;
+
+  // Validate redirect URL to prevent open redirect
+  let parsedRedirect: URL;
+  try {
+    parsedRedirect = new URL(redirectUrl);
+  } catch {
+    return res.redirect(`${config.clientUrl}/settings`);
+  }
+  const allowedHosts = [new URL(config.clientUrl).hostname, 'localhost', '127.0.0.1'];
+  if (!allowedHosts.includes(parsedRedirect.hostname)) {
+    return res.redirect(`${config.clientUrl}/settings`);
+  }
+
   // In a real implementation, this would redirect to Google/Microsoft OAuth URL
   // Here we simulate the successful OAuth callback by redirecting back with success params
   const email = `user@${provider === 'gmail' ? 'gmail.com' : 'outlook.com'}`;
@@ -122,7 +125,7 @@ router.get('/oauth/:provider', (req: Request, res: Response) => {
   callbackUrl.searchParams.set('oauth_success', 'true');
   callbackUrl.searchParams.set('provider', provider);
   callbackUrl.searchParams.set('email', email);
-  
+
   res.redirect(302, callbackUrl.toString());
 });
 

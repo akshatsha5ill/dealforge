@@ -5,27 +5,17 @@ on:
     workflows: [CI]
     types: [completed]
     branches: [main]
-  workflow_dispatch:
-
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
 
 jobs:
-  deploy-server:
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+  deploy:
+    name: Deploy to Render
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Deploy server to Render
+      - name: Deploy server
         run: |
           curl -X POST "${{ secrets.RENDER_SERVER_DEPLOY_HOOK }}"
 
-  deploy-client:
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy client to Render
+      - name: Deploy client
         run: |
           curl -X POST "${{ secrets.RENDER_CLIENT_DEPLOY_HOOK }}"

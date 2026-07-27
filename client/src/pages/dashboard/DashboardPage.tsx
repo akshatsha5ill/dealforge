@@ -97,7 +97,7 @@ export default function DashboardPage() {
       <div className="ds-panel" style={{ padding: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Recent Meetings</h3>
-          <button onClick={() => navigate('/meetings')} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button onClick={() => navigate('/dashboard/meetings')} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
             View all <ArrowRight size={14} />
           </button>
         </div>
@@ -118,7 +118,7 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               {recentMeetings.map((m) => (
-                <tr key={m.id} style={{ cursor: 'pointer', transition: 'background-color 0.2s' }} onClick={() => navigate(`/meetings/${m.id}`)} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                <tr key={m.id} style={{ cursor: 'pointer', transition: 'background-color 0.2s' }} onClick={() => navigate(`/dashboard/meetings/${m.id}`)} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                   <td style={{ padding: '12px 0', borderBottom: '1px solid var(--border)' }}>{m.title}</td>
                   <td className="data-text" style={{ padding: '12px 0', borderBottom: '1px solid var(--border)' }}>{m.duration} min</td>
                   <td style={{ padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
@@ -127,7 +127,7 @@ export default function DashboardPage() {
                     </span>
                   </td>
                   <td style={{ padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-                    <button onClick={(e) => { e.stopPropagation(); navigate(`/meetings/${m.id}`); }} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '13px' }}>
+                    <button onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/meetings/${m.id}`); }} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '13px' }}>
                       View
                     </button>
                   </td>

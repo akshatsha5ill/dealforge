@@ -18,23 +18,6 @@ export default function BillingPage() {
     const fetchPlan = async () => {
       try {
         const data = await apiClient.get('/billing/status');
-        setCurrentPlan(data.plan);
-      } catch (err) {
-        console.error('Failed to fetch plan:', err);
-      }
-    };
-    if (user) {
-      fetchPlan();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch('/api/billing/status', {
-          headers: { Authorization: `Bearer ${user?.accessToken}` }
-        });
-        const data = await res.json();
         if (data.status === 'success' && data.active && data.plan) {
           const planName = plans.find(p => p.id === data.plan)?.name || data.plan;
           setCurrentPlan(planName);
@@ -42,10 +25,12 @@ export default function BillingPage() {
           setCurrentPlan(null);
         }
       } catch (err) {
-        console.error('Failed to fetch plan status', err);
+        console.error('Failed to fetch plan:', err);
       }
     };
-    if (user?.accessToken) fetchStatus();
+    if (user) {
+      fetchPlan();
+    }
   }, [user]);
 
   const handleSubscribe = async (planId) => {

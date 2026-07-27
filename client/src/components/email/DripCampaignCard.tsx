@@ -53,7 +53,7 @@ export const DripCampaignCard: React.FC<DripCampaignCardProps> = ({
           padding: '4px 10px', 
           borderRadius: '20px', 
           backgroundColor: 'var(--bg-tertiary)',
-          border: `1px solid ${statusInfo.color}30`
+          border: `1px solid color-mix(in srgb, ${statusInfo.color} 30%, transparent)`
         }}>
           <StatusIcon size={14} style={{ color: statusInfo.color }} />
           <span style={{ fontSize: '12px', fontWeight: 500, color: statusInfo.color }}>{statusInfo.text}</span>

@@ -12,6 +12,7 @@ const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
 const MeetingsPage = lazy(() => import('./pages/dashboard/MeetingsPage'));
 const MeetingDetailPage = lazy(() => import('./pages/dashboard/MeetingDetailPage'));
 const LeadsPage = lazy(() => import('./pages/dashboard/LeadsPage'));
+const LeadDetailPage = lazy(() => import('./pages/dashboard/LeadDetailPage'));
 const SettingsPage = lazy(() => import('./pages/dashboard/SettingsPage'));
 const AnalyticsPage = lazy(() => import('./pages/dashboard/AnalyticsPage'));
 const PipelinePage = lazy(() => import('./pages/dashboard/PipelinePage'));
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
       { path: 'meetings', element: <Suspense fallback={<SuspenseFallback />}><MeetingsPage /></Suspense> },
       { path: 'meetings/:id', element: <Suspense fallback={<SuspenseFallback />}><MeetingDetailPage /></Suspense> },
       { path: 'leads', element: <Suspense fallback={<SuspenseFallback />}><LeadsPage /></Suspense> },
+      { path: 'leads/:id', element: <Suspense fallback={<SuspenseFallback />}><LeadDetailPage /></Suspense> },
       { path: 'analytics', element: <Suspense fallback={<SuspenseFallback />}><AnalyticsPage /></Suspense> },
       { path: 'pipeline', element: <Suspense fallback={<SuspenseFallback />}><PipelinePage /></Suspense> },
       { path: 'emails', element: <Suspense fallback={<SuspenseFallback />}><EmailPage /></Suspense> },

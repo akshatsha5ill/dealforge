@@ -182,7 +182,7 @@ export default function SettingsPage() {
         <div className="ds-panel" style={{ padding: '28px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--accent-primary)' }}>API Keys (BYOK)</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '13px', lineHeight: 1.5 }}>
-            Your keys are encrypted client-side using AES-256-GCM and stored in your browser. They are never sent to our servers.
+            Your keys are encrypted client-side using AES-256-GCM and stored in your browser. They are sent over HTTPS only when you use AI features.
           </p>
 
           <form onSubmit={handleSave}>

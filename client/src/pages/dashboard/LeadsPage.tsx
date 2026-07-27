@@ -46,7 +46,11 @@ export default function LeadsPage() {
         return;
       }
       
-      const apiKey = openAiKey || anthropicKey || 'test';
+      const apiKey = openAiKey || anthropicKey;
+      if (!apiKey) {
+        alert('Please set an API key in Settings before rescoring.');
+        return;
+      }
       const model = openAiKey ? 'openai' : 'anthropic';
       
       const res = await fetch('/api/ai/score', {

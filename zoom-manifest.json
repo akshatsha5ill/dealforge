@@ -1,32 +1,32 @@
 {
   "name": "DealForge AI",
-  "shortDescription": "The ultimate AI-powered CRM for Zoom meetings",
-  "longDescription": "DealForge seamlessly integrates into your Zoom client to provide real-time AI transcription, lead scoring, and automated pipeline management. Enhance your sales conversations with live insights and automatic follow-up drip campaigns.",
+  "shortDescription": "AI-powered meeting intelligence and CRM for Zoom",
+  "longDescription": "DealForge integrates into your Zoom client to provide real-time AI transcription, automated lead scoring, deal pipeline management, and email outreach. Turn every sales meeting into actionable leads and closed deals.",
   "companyName": "DealForge Inc.",
   "version": "1.0.0",
   "categories": ["Sales", "Productivity", "CRM"],
   "scopes": [
     "meeting:read",
-    "recording:read"
+    "recording:read",
+    "user:read"
   ],
   "redirectUris": [
-    "https://vigilant-goggles.vercel.app/api/auth/zoom/callback",
-    "https://localhost:3000/api/auth/zoom/callback"
+    "https://YOUR_DOMAIN.com/api/zoom/oauth/callback"
   ],
   "webhookUris": [
-    "https://vigilant-goggles.vercel.app/api/zoom/webhook"
+    "https://YOUR_DOMAIN.com/api/zoom/webhook"
   ],
   "features": [
     "zoomApp",
     "meetingPanel"
   ],
-  "supportUrl": "https://vigilant-goggles.vercel.app/support",
-  "privacyPolicyUrl": "https://vigilant-goggles.vercel.app/privacy",
-  "termsOfServiceUrl": "https://vigilant-goggles.vercel.app/terms",
+  "supportUrl": "https://YOUR_DOMAIN.com/support",
+  "privacyPolicyUrl": "https://YOUR_DOMAIN.com/privacy",
+  "termsOfServiceUrl": "https://YOUR_DOMAIN.com/terms",
   "developerContact": {
     "name": "DealForge Engineering",
     "email": "dev@dealforge.app"
   },
-  "clientId": "PLACEHOLDER_CLIENT_ID",
-  "clientSecret": "PLACEHOLDER_CLIENT_SECRET"
+  "clientId": "YOUR_ZOOM_CLIENT_ID",
+  "clientSecret": "YOUR_ZOOM_CLIENT_SECRET"
 }

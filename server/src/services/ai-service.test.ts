@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { analyzeMeeting } from './ai-service';
-import { AIFactory } from './ai-providers';
+import { analyzeMeeting } from './ai-service.js';
+import { AIFactory } from './ai-providers.js';
 import nock from 'nock';
 
 describe('ai-service', () => {
