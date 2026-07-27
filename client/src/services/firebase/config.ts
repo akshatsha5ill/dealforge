@@ -10,6 +10,26 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+let app: any;
+let auth: any;
+
+try {
+  if (!firebaseConfig.apiKey) {
+    throw new Error('Firebase configuration is missing.');
+  }
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+} catch (error) {
+  console.warn('Running without Firebase:', error);
+  // Provide a dummy auth object to prevent the app from crashing entirely
+  auth = {
+    onAuthStateChanged: (cb: any) => { cb(null); return () => {}; },
+    currentUser: null,
+    signInWithEmailAndPassword: async () => { throw new Error('Firebase not configured'); },
+    createUserWithEmailAndPassword: async () => { throw new Error('Firebase not configured'); },
+    signOut: async () => {}
+  };
+}
+
+export { auth };
 export default app;
