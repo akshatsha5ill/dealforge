@@ -6,12 +6,15 @@ import { leadAutomationService } from './services/lead-automation';
 import { dripWorker } from './services/drip-worker';
 import { db } from './services/local-db/db';
 import { runAutoBackup, verifyPermission } from './services/local-db/backup';
+import { initAnalytics } from './services/analytics';
+import CookieConsent from './components/common/CookieConsent';
 import './index.css';
 
 function App() {
   const [needsBackupPermission, setNeedsBackupPermission] = useState<any>(null);
   useEffect(() => {
     initAuthListener();
+    initAnalytics();
     if (navigator.storage && navigator.storage.persist) {
       navigator.storage.persist().then(isPersisted => {
         console.log(`Persisted storage granted: ${isPersisted}`);
@@ -68,6 +71,7 @@ function App() {
   return (
     <>
       <RouterProvider router={router} />
+      <CookieConsent />
       {needsBackupPermission && (
         <div className="ds-panel" style={{ position: 'fixed', bottom: '32px', right: '32px', padding: '24px', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '300px', boxShadow: '0 8px 32px rgba(168, 119, 20, 0.2)', border: '1px solid var(--secondary)' }}>
           <div className="ds-panel-head" style={{ marginBottom: 0, paddingBottom: 0, borderBottom: 'none' }}>

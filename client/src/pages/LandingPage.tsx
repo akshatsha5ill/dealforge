@@ -1,9 +1,63 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { ArrowRight, Activity, Calendar, Zap, Mail, Shield } from 'lucide-react';
+import { ArrowRight, Activity, Calendar, Zap, Mail, Shield, ChevronDown } from 'lucide-react';
 import { useStore } from '../store';
 import { loginWithGoogle, loginWithEmail, registerWithEmail } from '../services/firebase/auth';
 import GoogleIcon from '../components/GoogleIcon';
+
+function NavDropdown({ label, items }: { label: string; items: { label: string; to: string }[] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '4px',
+          fontSize: '14px', color: 'var(--text-secondary)', padding: '6px 0',
+          transition: 'color 0.2s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+      >
+        {label}
+        <ChevronDown size={14} style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
+          background: 'var(--bg-secondary)', border: '1px solid var(--border)', padding: '8px 0',
+          minWidth: '180px', zIndex: 200,
+        }}>
+          {items.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              onClick={() => setOpen(false)}
+              style={{
+                display: 'block', padding: '10px 20px', fontSize: '14px', color: 'var(--text-secondary)',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; }}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function AuthPanel() {
   const navigate = useNavigate();
@@ -120,24 +174,59 @@ export default function LandingPage() {
       
       {/* Masthead */}
       <header style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-primary)', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '18px 36px 14px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '24px' }}>
-          
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '28px', color: 'var(--primary)', letterSpacing: '-0.06em', lineHeight: 1 }}>D.</span>
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '22px', letterSpacing: '-0.015em' }}>DealForge</span>
-            <span style={{ fontStyle: 'italic', fontSize: '13px', color: 'var(--text-muted)', borderLeft: '1px solid var(--border)', paddingLeft: '12px' }}>an industrial operating system for sales</span>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 36px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+          {/* Logo */}
+          <Link to="/" style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexShrink: 0 }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '26px', color: 'var(--primary)', letterSpacing: '-0.06em', lineHeight: 1 }}>D.</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '20px', letterSpacing: '-0.015em' }}>DealForge</span>
+          </Link>
+
+          {/* Center Nav */}
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+            <a href="#features" style={{ fontSize: '14px', color: 'var(--text-secondary)', transition: 'color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+            >Features</a>
+            <NavDropdown
+              label="Product"
+              items={[
+                { label: 'Pipeline', to: '/login' },
+                { label: 'Lead Scoring', to: '/login' },
+                { label: 'Email Drips', to: '/login' },
+              ]}
+            />
+            <a href="#features" style={{ fontSize: '14px', color: 'var(--text-secondary)', transition: 'color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+            >Pricing</a>
+            <NavDropdown
+              label="Resources"
+              items={[
+                { label: 'Support', to: '/support' },
+                { label: 'Privacy Policy', to: '/privacy' },
+                { label: 'Terms of Service', to: '/terms' },
+              ]}
+            />
+          </nav>
+
+          {/* Right Auth */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
+            <Link to="/login" style={{ fontSize: '14px', color: 'var(--text-secondary)', transition: 'color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+            >Sign In</Link>
+            <Link to="/login" style={{
+              fontSize: '14px', fontWeight: 500, padding: '10px 20px',
+              background: 'var(--text-primary)', color: 'var(--bg-primary)',
+              transition: 'background 0.2s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--primary)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'var(--text-primary)'}
+            >Get Started</Link>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
-            <Link to="/login" style={{ fontSize: '14px', color: 'var(--text-secondary)', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}>
-              Sign In
-            </Link>
-            <Link to="/login" className="ds-filter">
-              Create Account <span>→</span>
-            </Link>
-          </div>
         </div>
-        <div style={{ position: 'absolute', bottom: '-1px', left: 0, height: '2px', background: 'var(--primary)', width: '0%', transition: 'width 0.1s linear' }} id="progress-line"></div>
       </header>
 
       {/* Hero Section */}
