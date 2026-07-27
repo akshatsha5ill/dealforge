@@ -261,7 +261,7 @@ export default function SettingsPage() {
           <div style={{ marginTop: '30px', paddingTop: '20px', borderTop: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>Security Notes</h3>
             <ul style={{ color: 'var(--text-muted)', fontSize: '12px', paddingLeft: '16px', lineHeight: 1.8 }}>
-              <li>Keys are encrypted with AES-256-GCM (PBKDF2, 600K iterations)</li>
+              <li>Keys are encrypted with AES-256-GCM (PBKDF2, 100K iterations)</li>
               <li>Encryption/decryption happens entirely in your browser</li>
               <li>Our servers never see your plaintext API keys</li>
               <li>Lost password = lost keys (we cannot recover them)</li>
