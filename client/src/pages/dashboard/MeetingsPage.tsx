@@ -80,7 +80,7 @@ export default function MeetingsPage() {
             )}
             components={{
               Table: (props) => <table {...props} style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }} />,
-              TableRow: (props) => <tr {...props} onClick={() => navigate(`/meetings/${props.item.id}`)} style={{ cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'} />
+              TableRow: (props) => <tr {...props} onClick={() => navigate(`/dashboard/meetings/${props.item.id}`)} style={{ cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'} />
             }}
           />
         )}

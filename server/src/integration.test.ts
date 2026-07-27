@@ -3,16 +3,16 @@ import request from 'supertest';
 import { app } from './app.js';
 
 vi.mock('./services/firebase-admin.js', () => ({
-  default: {
-    auth: () => ({ verifyIdToken: vi.fn().mockResolvedValue({ uid: 'test-user', email: 'test@example.com' }) }),
-    firestore: () => ({
-      collection: () => ({
-        doc: () => ({
-          get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ plan: 'pro' }) })
-        })
-      })
-    })
-  }
+  getFirebaseAuth: () => ({
+    verifyIdToken: vi.fn().mockResolvedValue({ uid: 'test-user', email: 'test@example.com' }),
+  }),
+  getFirebaseFirestore: () => ({
+    collection: () => ({
+      doc: () => ({
+        get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ plan: 'pro' }) }),
+      }),
+    }),
+  }),
 }));
 
 describe('Integration Tests', () => {

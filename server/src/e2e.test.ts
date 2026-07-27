@@ -3,23 +3,23 @@ import request from 'supertest';
 import { app } from './app.js';
 
 vi.mock('./services/firebase-admin.js', () => ({
-  default: {
-    auth: () => ({ verifyIdToken: vi.fn().mockResolvedValue({ uid: 'e2e-user', email: 'e2e@example.com' }) }),
-    firestore: () => ({
-      collection: () => ({
-        doc: () => ({
-          get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ plan: 'pro', emailsSent: 0 }) }),
-          set: vi.fn().mockResolvedValue({}),
-          update: vi.fn().mockResolvedValue({})
+  getFirebaseAuth: () => ({
+    verifyIdToken: vi.fn().mockResolvedValue({ uid: 'e2e-user', email: 'e2e@example.com' }),
+  }),
+  getFirebaseFirestore: () => ({
+    collection: () => ({
+      doc: () => ({
+        get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ plan: 'pro', emailsSent: 0 }) }),
+        set: vi.fn().mockResolvedValue({}),
+        update: vi.fn().mockResolvedValue({}),
+      }),
+      where: () => ({
+        get: vi.fn().mockResolvedValue({
+          forEach: vi.fn(),
         }),
-        where: () => ({
-          get: vi.fn().mockResolvedValue({
-            forEach: vi.fn()
-          })
-        })
-      })
-    })
-  }
+      }),
+    }),
+  }),
 }));
 
 describe('E2E User Flow', () => {

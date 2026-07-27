@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Request, Response, NextFunction } from 'express';
 import sanitize from './sanitize.js';
 
 describe('sanitize middleware', () => {
-  let req;
-  let res;
-  let next;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let req: any;
+  let res: Record<string, never>;
+  let next: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -15,9 +17,9 @@ describe('sanitize middleware', () => {
   it('strips HTML tags from strings in body', () => {
     req = { body: { name: '<script>alert("xss")</script>Hello' } };
 
-    sanitize(req, res, next);
+    sanitize(req, res as unknown as Response, next as unknown as NextFunction);
 
-    expect(req.body.name).toBe('Hello'); // Fixed assertion: xss library removes entire string within <script> tags when configured with stripIgnoreTagBody
+    expect(req.body.name).toBe('Hello');
     expect(next).toHaveBeenCalled();
   });
 
@@ -31,9 +33,8 @@ describe('sanitize middleware', () => {
       },
     };
 
-    sanitize(req, res, next);
+    sanitize(req, res as unknown as Response, next as unknown as NextFunction);
 
-    // Default whiteList behavior might strip out Bold tags if we empty them
     expect(req.body.user.name).toBe('Bold');
     expect(req.body.user.bio).toBe('Italic');
   });
@@ -45,7 +46,7 @@ describe('sanitize middleware', () => {
       },
     };
 
-    sanitize(req, res, next);
+    sanitize(req, res as unknown as Response, next as unknown as NextFunction);
 
     expect(req.body.tags).toEqual(['First', 'Second', 'Clean']);
   });
@@ -59,7 +60,7 @@ describe('sanitize middleware', () => {
       },
     };
 
-    sanitize(req, res, next);
+    sanitize(req, res as unknown as Response, next as unknown as NextFunction);
 
     expect(req.body.count).toBe(42);
     expect(req.body.active).toBe(true);
@@ -69,7 +70,7 @@ describe('sanitize middleware', () => {
   it('calls next even when body is missing', () => {
     req = {};
 
-    sanitize(req, res, next);
+    sanitize(req, res as unknown as Response, next as unknown as NextFunction);
 
     expect(next).toHaveBeenCalled();
   });
@@ -77,7 +78,7 @@ describe('sanitize middleware', () => {
   it('calls next when body is not an object', () => {
     req = { body: 'just a string' };
 
-    sanitize(req, res, next);
+    sanitize(req, res as unknown as Response, next as unknown as NextFunction);
 
     expect(next).toHaveBeenCalled();
     expect(req.body).toBe('just a string');

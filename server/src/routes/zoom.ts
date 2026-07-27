@@ -1,18 +1,20 @@
 import express, { Request, Response } from 'express';
-import admin from '../services/firebase-admin.js';
+import { getFirebaseAuth, getFirebaseFirestore } from '../services/firebase-admin.js';
 import crypto from 'crypto';
 import https from 'https';
 import bufferService from '../services/buffer-service.js';
-import { verifyAuth } from '../middleware/auth.js';
+import { verifyAuth, AuthRequest } from '../middleware/auth.js';
 import { config } from '../config.js';
 import { z } from 'zod';
 import { validateRequest } from '../middleware/validateRequest.js';
 import { AppError } from '../middleware/errorHandler.js';
 import log from '../utils/logger.js';
+import zoomRTMS from '../services/zoom-rtms.js';
+import transcriptAnalysisPipeline from '../services/transcript-analysis-pipeline.js';
 
 const router = express.Router();
 
-router.get('/oauth/callback', async (req: Request, res: Response, next: express.NextFunction): Promise<any> => {
+router.get('/oauth/callback', async (req: Request, res: Response, next: express.NextFunction): Promise<unknown> => {
   const { code } = req.query;
   if (!code) {
     return next(new AppError('Missing authorization code', 400));
@@ -24,7 +26,7 @@ router.get('/oauth/callback', async (req: Request, res: Response, next: express.
   }
 
   try {
-    const tokenRes: any = await new Promise((resolve, reject) => {
+    const tokenRes: Record<string, unknown> = await new Promise((resolve, reject) => {
       const creds = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
       const body = new URLSearchParams({
         grant_type: 'authorization_code',
@@ -59,7 +61,7 @@ router.get('/oauth/callback', async (req: Request, res: Response, next: express.
     });
 
     if (tokenRes.error) {
-      return next(new AppError(tokenRes.reason || tokenRes.error, 400));
+      return next(new AppError((tokenRes.reason || tokenRes.error) as string, 400));
     }
 
     // Persist tokens to the authenticated user's Firestore document
@@ -67,13 +69,13 @@ router.get('/oauth/callback', async (req: Request, res: Response, next: express.
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const idToken = authHeader.split('Bearer ')[1];
-        const decoded = await admin.auth().verifyIdToken(idToken);
-        await admin.firestore().collection('users').doc(decoded.uid).set({
+        const decoded = await getFirebaseAuth().verifyIdToken(idToken);
+        await getFirebaseFirestore().collection('users').doc(decoded.uid).set({
           zoomLinked: true,
           zoomAccessToken: tokenRes.access_token,
           zoomRefreshToken: tokenRes.refresh_token,
           zoomTokenExpiresAt: tokenRes.expires_in
-            ? Date.now() + tokenRes.expires_in * 1000
+            ? Date.now() + (tokenRes.expires_in as number) * 1000
             : null,
         }, { merge: true });
       } catch {
@@ -90,7 +92,7 @@ router.get('/oauth/callback', async (req: Request, res: Response, next: express.
   }
 });
 
-router.post('/webhook', async (req: Request, res: Response, next: express.NextFunction): Promise<any> => {
+router.post('/webhook', async (req: Request, res: Response, next: express.NextFunction): Promise<unknown> => {
   const { event, payload } = req.body;
   const secret = process.env.ZOOM_WEBHOOK_SECRET_TOKEN || config.zoom.webhookSecretToken;
 
@@ -119,22 +121,51 @@ router.post('/webhook', async (req: Request, res: Response, next: express.NextFu
   switch (event) {
     case 'endpoint.url_validation': {
       const hashForValidate = crypto.createHmac('sha256', secret).update(payload.plainToken).digest('hex');
-      return res.status(200).json({
+      res.status(200).json({
         plainToken: payload.plainToken,
         encryptedToken: hashForValidate
       });
+      return;
     }
     case 'meeting.started': {
       const meetingId = payload?.object?.id;
+      const topic = payload?.object?.topic || 'Untitled Meeting';
       if (meetingId) {
-        await bufferService.store(`meeting:${meetingId}`, { startedAt: new Date().toISOString(), status: 'active' });
+        await bufferService.store(`meeting:${meetingId}`, { 
+          startedAt: new Date().toISOString(), 
+          status: 'active',
+          topic 
+        });
+
+        // Establish RTMS connection for real-time transcription
+        const rtmsConnected = await zoomRTMS.connectToMeeting(meetingId, topic);
+        if (rtmsConnected) {
+          log.info('RTMS connection established for meeting', { meetingId, topic });
+        } else {
+          log.warn('Failed to establish RTMS connection, falling back to manual transcription', { meetingId });
+        }
+
+        // Start transcript analysis pipeline
+        const io = req.app.get('io');
+        if (io) {
+          transcriptAnalysisPipeline.initialize(io);
+        }
+        transcriptAnalysisPipeline.startPipeline(meetingId);
+        log.info('Transcript analysis pipeline started for meeting', { meetingId });
       }
       break;
     }
     case 'meeting.ended': {
       const meetingId = payload?.object?.id;
       if (meetingId) {
-        const data = await bufferService.get<any>(`meeting:${meetingId}`);
+        // Stop transcript analysis pipeline
+        transcriptAnalysisPipeline.stopPipeline(meetingId);
+        log.info('Transcript analysis pipeline stopped for meeting', { meetingId });
+
+        // Disconnect from RTMS
+        await zoomRTMS.disconnectFromMeeting(meetingId);
+
+        const data = await bufferService.get<Record<string, unknown>>(`meeting:${meetingId}`);
         if (data) {
           data.endedAt = new Date().toISOString();
           data.status = 'completed';
@@ -153,8 +184,8 @@ router.post('/webhook', async (req: Request, res: Response, next: express.NextFu
       const participant = payload?.object?.participant;
       if (meetingId && participant) {
         const key = `participants:${meetingId}`;
-        const existing = (await bufferService.get<any>(key)) || { participants: [] };
-        if (!existing.participants.find((p: any) => p.user_id === participant.user_id || p.user_name === participant.user_name)) {
+        const existing = (await bufferService.get<{ participants: Array<Record<string, unknown>> }>(key)) || { participants: [] };
+        if (!existing.participants.find((p) => p.user_id === participant.user_id || p.user_name === participant.user_name)) {
           existing.participants.push(participant);
           await bufferService.store(key, existing);
         }
@@ -172,7 +203,7 @@ router.post('/webhook', async (req: Request, res: Response, next: express.NextFu
   return res.status(200).json({ status: 'ok' });
 });
 
-router.post('/deauth', async (req: Request, res: Response, next: express.NextFunction): Promise<any> => {
+router.post('/deauth', async (req: Request, res: Response, next: express.NextFunction): Promise<unknown> => {
   const { payload } = req.body;
   const secret = config.zoom.webhookSecretToken;
 
@@ -205,14 +236,14 @@ router.post('/deauth', async (req: Request, res: Response, next: express.NextFun
   
   if (userId) {
     try {
-      const snapshot = await admin.firestore().collection('users').where('zoomUserId', '==', userId).get();
-      const promises: any[] = [];
-      snapshot.forEach(doc => {
+      const snapshot = await getFirebaseFirestore().collection('users').where('zoomUserId', '==', userId).get();
+      const promises: Promise<unknown>[] = [];
+      snapshot.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
         promises.push(doc.ref.update({ 
           zoomLinked: false, 
-          zoomUserId: admin.firestore.FieldValue.delete(),
-          zoomAccessToken: admin.firestore.FieldValue.delete(),
-          zoomRefreshToken: admin.firestore.FieldValue.delete()
+          zoomUserId: FirebaseFirestore.FieldValue.delete(),
+          zoomAccessToken: FirebaseFirestore.FieldValue.delete(),
+          zoomRefreshToken: FirebaseFirestore.FieldValue.delete()
         }));
       });
       await Promise.all(promises);
@@ -229,20 +260,39 @@ const transcriptionSchema = z.object({
   segment: z.any()
 });
 
-router.post('/transcription', verifyAuth, validateRequest({ body: transcriptionSchema }), async (req: Request, res: Response, next: express.NextFunction): Promise<any> => {
+router.post('/transcription', verifyAuth, validateRequest({ body: transcriptionSchema }), async (req: AuthRequest, res: Response, next: express.NextFunction): Promise<void> => {
   const { meetingId, segment } = req.body;
 
+  // Normalize segment to ensure consistent format
+  const normalizedSegment = {
+    id: segment.id || `transcript-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    speaker: segment.speaker || 'Unknown Speaker',
+    text: segment.text,
+    startTime: segment.startTime,
+    endTime: segment.endTime,
+    timestamp: new Date().toISOString(),
+    source: segment.source || 'manual'
+  };
+
   const key = `transcript:${meetingId}`;
-  const existing = (await bufferService.get<any>(key)) || { segments: [] };
-  existing.segments.push(segment);
+  const existing = (await bufferService.get<{ segments: Array<Record<string, unknown>> }>(key)) || { segments: [] };
+  existing.segments.push(normalizedSegment);
   await bufferService.store(key, existing);
 
   const io = req.app.get('io');
   if (io) {
-    io.to(`meeting:${meetingId}`).emit('transcription', segment);
+    io.to(`meeting:${meetingId}`).emit('transcription', normalizedSegment);
+    log.info('Transcription segment stored and broadcast', { meetingId, source: normalizedSegment.source });
   }
 
-  return res.status(200).json({ status: 'ok' });
+  // Check if we should trigger analysis based on segment count
+  const segmentCount = existing.segments.length;
+  if (segmentCount > 0 && segmentCount % 10 === 0) {
+    // Trigger analysis every 10 segments for more responsive suggestions
+    log.info('Triggering transcript analysis based on segment count', { meetingId, segmentCount });
+  }
+
+  res.status(200).json({ status: 'ok', segmentId: normalizedSegment.id });
 });
 
 const notesSchema = z.object({
@@ -250,18 +300,18 @@ const notesSchema = z.object({
   note: z.any()
 });
 
-router.post('/notes', verifyAuth, validateRequest({ body: notesSchema }), async (req: Request, res: Response, next: express.NextFunction): Promise<any> => {
+router.post('/notes', verifyAuth, validateRequest({ body: notesSchema }), async (req: AuthRequest, res: Response, next: express.NextFunction): Promise<void> => {
   const { meetingId, note } = req.body;
 
   const key = `notes:${meetingId}`;
-  const existing = (await bufferService.get<any>(key)) || { notes: [] };
+  const existing = (await bufferService.get<{ notes: Array<Record<string, unknown>> }>(key)) || { notes: [] };
   existing.notes.push({ ...note, receivedAt: new Date().toISOString() });
   await bufferService.store(key, existing);
 
-  return res.status(200).json({ status: 'ok' });
+  res.status(200).json({ status: 'ok' });
 });
 
-router.get('/buffer/:meetingId', verifyAuth, async (req: Request, res: Response) => {
+router.get('/buffer/:meetingId', verifyAuth, async (req: AuthRequest, res: Response) => {
   const { meetingId } = req.params;
   const transcript = await bufferService.get(`transcript:${meetingId}`);
   const notes = await bufferService.get(`notes:${meetingId}`);
@@ -276,14 +326,30 @@ router.get('/buffer/:meetingId', verifyAuth, async (req: Request, res: Response)
   });
 });
 
-router.delete('/buffer/:meetingId', verifyAuth, async (req: Request, res: Response) => {
-  const { meetingId } = req.params;
+router.delete('/buffer/:meetingId', verifyAuth, async (req: AuthRequest, res: Response) => {
+  const meetingId = req.params.meetingId;
   await bufferService.delete(`transcript:${meetingId}`);
   await bufferService.delete(`notes:${meetingId}`);
   await bufferService.delete(`meeting:${meetingId}`);
   await bufferService.delete(`participants:${meetingId}`);
 
   res.status(200).json({ status: 'cleared' });
+});
+
+router.get('/rtms/status', verifyAuth, async (req: AuthRequest, res: Response) => {
+  const connectedMeetings = zoomRTMS.getConnectedMeetingIds();
+  res.status(200).json({ 
+    connectedMeetings,
+    isConnected: connectedMeetings.length > 0
+  });
+});
+
+router.get('/pipeline/status', verifyAuth, async (req: AuthRequest, res: Response) => {
+  const activePipelines = transcriptAnalysisPipeline.getActivePipelines();
+  res.status(200).json({
+    activePipelines,
+    activeCount: activePipelines.length
+  });
 });
 
 export default router;

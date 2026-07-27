@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyAuth } from '../middleware/auth.js';
+import { verifyAuth, AuthRequest } from '../middleware/auth.js';
 import { config } from '../config.js';
 import { z } from 'zod';
 import { validateRequest } from 'zod-express-middleware';
@@ -23,8 +23,10 @@ const isSafeRedirect = (url: string): boolean => {
   }
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let redis: any = null;
 let useRedis = false;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const trackingInbox = new Map<string, any[]>();
 const MAX_EVENTS_PER_USER = 500;
 const INBOX_TTL = 24 * 60 * 60 * 1000;
@@ -33,7 +35,9 @@ const inboxTimestamps = new Map<string, number>();
 const initRedis = async () => {
   if (config.redis.url) {
     try {
-      const Redis = (await import('ioredis')).default;
+      const ioredis = await import('ioredis');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const Redis = ioredis.default as any;
       redis = new Redis(config.redis.url, {
         maxRetriesPerRequest: 3,
         retryStrategy(times: number) {
@@ -58,6 +62,7 @@ const initRedis = async () => {
 };
 initRedis();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const storeEvent = async (userId: string, event: any) => {
   if (!userId) return;
 
@@ -109,7 +114,8 @@ router.get('/open/:campaignId', validateRequest({ query: openSchema }), (req, re
   if (!uid || uid.length > 128) {
     const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
     res.writeHead(200, { 'Content-Type': 'image/gif', 'Content-Length': pixel.length });
-    return res.end(pixel);
+    res.end(pixel);
+    return;
   }
 
   storeEvent(uid, {
@@ -145,6 +151,7 @@ router.get('/click/:campaignId', validateRequest({ query: clickSchema }), (req, 
   res.redirect(safeUrl);
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const pullEvents = async (userId: string): Promise<any[]> => {
   if (useRedis && redis) {
     try {
@@ -161,14 +168,14 @@ const pullEvents = async (userId: string): Promise<any[]> => {
   return events;
 };
 
-router.get('/events', verifyAuth, async (req, res) => {
-  const userId = req.user.uid;
+router.get('/events', verifyAuth, async (req: AuthRequest, res) => {
+  const userId = req.user!.uid;
   const events = await pullEvents(userId);
   res.status(200).json({ status: 'success', events });
 });
 
-router.get('/events/:campaignId', verifyAuth, async (req, res) => {
-  const userId = req.user.uid;
+router.get('/events/:campaignId', verifyAuth, async (req: AuthRequest, res) => {
+  const userId = req.user!.uid;
   const { campaignId } = req.params;
   const allEvents = await pullEvents(userId);
   const events = allEvents.filter((e) => e.campaignId === campaignId);

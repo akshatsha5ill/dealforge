@@ -582,46 +582,40 @@ dealforge/
 
 ## Design System
 
-### Visual Identity — *"Claude meets Linear"*
+### Visual Identity — *"Warm Parchment"*
 
-**Vibe:** Dark, sleek, clean, minimal, futuristic — inspired by Claude's warm intelligence and Linear's precision.
+**Vibe:** Warm, elegant, literary — inspired by vintage paper and classical typography.
 
 ### Color Palette
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--bg-primary` | `#0d0d0d` | Main background |
-| `--bg-secondary` | `#1a1a1a` | Cards, panels |
-| `--bg-tertiary` | `#252525` | Hover states, elevated surfaces |
-| `--bg-glass` | `rgba(255,255,255,0.04)` | Glassmorphism panels |
-| `--text-primary` | `#f5f0e8` | Primary text (warm off-white, Claude-like) |
-| `--text-secondary` | `#a39e93` | Secondary text |
-| `--text-muted` | `#6b6560` | Muted/disabled text |
-| `--accent-primary` | `#d4a574` | Primary accent (warm amber, Claude-inspired) |
-| `--accent-hover` | `#e0b88a` | Accent hover state |
-| `--accent-glow` | `rgba(212,165,116,0.15)` | Glow effects |
-| `--success` | `#4ecdc4` | Positive sentiment, won deals |
-| `--warning` | `#f0c929` | Caution, pending items |
-| `--danger` | `#e94560` | Negative sentiment, alerts |
-| `--border` | `rgba(255,255,255,0.08)` | Subtle borders |
+| `--primary` | `#8a2317` | Primary accent (deep red) |
+| `--secondary` | `#a87714` | Secondary accent (warm brown) |
+| `--tertiary` | `#5d7440` | Tertiary accent (sage green) |
+| `--bg-primary` | `#f3ebd9` | Main background (light parchment) |
+| `--bg-secondary` | `#faf3e2` | Cards, panels |
+| `--bg-tertiary` | `#e9dec3` | Hover states, elevated surfaces |
+| `--text-primary` | `#1c1813` | Primary text (dark brown) |
+| `--text-secondary` | `#4a4338` | Secondary text |
+| `--text-muted` | `#847a64` | Muted/disabled text |
+| `--border` | `#c9be9f` | Warm borders |
 
 ### Typography
 
 | Element | Font | Size | Weight |
 |---------|------|------|--------|
-| Headings | **Inter** | 24–32px | 600 |
-| Body | **Inter** | 14–16px | 400 |
+| Display | **Fraunces** | 24–32px | 700 |
+| Body | **Newsreader** | 17px | 400 |
 | Code/Data | **JetBrains Mono** | 13px | 400 |
-| Labels | **Inter** | 12px | 500 |
 
 ### Design Principles
 
-- **Glassmorphism:** Subtle frosted glass effects on cards and panels using `backdrop-filter: blur()`
-- **Micro-animations:** Smooth 200–300ms transitions on hover, focus, and state changes
-- **Depth:** Layered surfaces with subtle shadows and border opacity changes
-- **Warm Accents:** Claude-inspired warm amber tones against cool dark backgrounds
+- **Paper Texture:** Subtle grain overlay for tactile, printed feel
+- **Warm Tones:** Earthy reds, browns, and sage against parchment backgrounds
+- **Classical Typography:** Serif fonts (Fraunces, Newsreader) for elegant readability
+- **Minimal Shadows:** Flat design with subtle borders instead of heavy shadows
 - **Whitespace:** Generous padding and margins for a premium, breathable feel
-- **Consistent Radius:** 8px for small elements, 12px for cards, 16px for modals
 
 ---
 
@@ -782,15 +776,8 @@ For the very first buildable version, we focus on **Phase 1 only**:
 - [ ] **Deployment configs run TypeScript source directly** — `railway.json` and `render.yaml` both use `startCommand: "node src/index.js"` which runs `.ts` files directly. Fix: use `tsx src/index.js` or point to `dist/index.js` after build.
 - [ ] **Docker workspace hoisting** — Both Dockerfiles copy individual workspace `package.json` files but rely on root-level `package-lock.json`. `npm ci` inside Docker may fail. Fix: copy root package files into Docker context or use multi-stage workspace-aware builds.
 
-### Medium Priority
-- [ ] **`.env` files contain only placeholders** — No real Firebase, Zoom, Stripe, or Resend credentials configured. App will not function without real values.
-- [ ] **`zoom-manifest.json` has placeholder credentials** — `clientId` and `clientSecret` are `PLACEHOLDER_*` values.
-- [ ] **`render.yaml` missing Stripe env vars** — `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and price IDs not listed.
-
 ### Low Priority
-- [ ] **`.antigravityrules` version mismatch** — States "Vite 8" and "Express 5" but actual versions are Vite ^5.0.0 and Express ^4.21.0.
-- [ ] **`client/vite.config.ts` test setup path** — References `./src/test/setup.js` but file is `setup.ts`.
-- [ ] **`deploy.yml` has no deployment step** — Builds and pushes Docker images but doesn't deploy them anywhere.
+- [ ] **Docker workspace hoisting** — Both Dockerfiles copy individual workspace `package.json` files but rely on root-level `package-lock.json`. `npm ci` inside Docker may fail. Fix: copy root package files into Docker context or use multi-stage workspace-aware builds.
 
 ## Notes
 - Tracking events and buffer service use in-memory storage (lost on server restart). Acceptable for development/small scale; would need Redis for production durability.

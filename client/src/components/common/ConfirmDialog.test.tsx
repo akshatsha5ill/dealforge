@@ -4,7 +4,7 @@ import ConfirmDialogContainer, { confirm } from './ConfirmDialog';
 
 describe('ConfirmDialog', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
   afterEach(() => {

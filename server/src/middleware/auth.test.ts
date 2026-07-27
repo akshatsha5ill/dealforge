@@ -1,23 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
 
-let mockVerifyIdToken;
+const mockVerifyIdToken = vi.fn();
 
-vi.mock('../services/firebase-admin.js', () => {
-    mockVerifyIdToken = vi.fn();
-    return {
-        default: {
-            auth: () => ({ verifyIdToken: mockVerifyIdToken })
-        }
-    };
-});
+vi.mock('../services/firebase-admin.js', () => ({
+    getFirebaseAuth: () => ({ verifyIdToken: mockVerifyIdToken }),
+    getFirebaseFirestore: () => ({}),
+}));
 
 describe('verifyAuth middleware', () => {
-  let req;
-  let res;
-  let next;
-  let verifyAuth;
+  let req: { headers: Record<string, string>; user?: Record<string, unknown> };
+  let res: { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn> };
+  let next: ReturnType<typeof vi.fn>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let verifyAuth: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();

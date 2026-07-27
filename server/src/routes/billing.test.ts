@@ -1,19 +1,18 @@
 import { describe, it, expect, vi } from 'vitest';
 import request from 'supertest';
 import { app } from '../app.js';
-import admin from '../services/firebase-admin.js';
 import Stripe from 'stripe';
 
 vi.mock('../services/firebase-admin.js', () => ({
-  default: {
-    auth: () => ({ verifyIdToken: vi.fn().mockResolvedValue({ uid: 'test-user', email: 'test@example.com' }) }),
-    firestore: () => ({
-      collection: () => ({
-        doc: () => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ subscription: { status: 'active', plan: 'pro' } }) }) }),
-        where: () => ({ get: vi.fn().mockResolvedValue({ forEach: vi.fn() }) })
-      })
+  getFirebaseAuth: () => ({
+    verifyIdToken: vi.fn().mockResolvedValue({ uid: 'test-user', email: 'test@example.com' }),
+  }),
+  getFirebaseFirestore: () => ({
+    collection: () => ({
+      doc: () => ({ get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ subscription: { status: 'active', plan: 'pro' } }) }) }),
+      where: () => ({ get: vi.fn().mockResolvedValue({ forEach: vi.fn() }) })
     })
-  }
+  })
 }));
 
 describe('Billing Routes', () => {

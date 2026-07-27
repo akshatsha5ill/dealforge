@@ -186,14 +186,14 @@ export default function EmailPage() {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
-          lead: {
+          leadContext: {
             name: lead?.name,
             email: lead?.email,
             company: lead?.company,
             role: lead?.role,
             score: lead?.score,
           },
-          transcriptContext: transcriptContext.slice(0, 4000),
+          transcript: transcriptContext.slice(0, 4000),
           previousEmails: campaigns
             .filter(c => c.leadId === form.leadId)
             .map(c => ({ subject: c.subject, body: c.body, sentAt: c.sentAt })),
@@ -257,10 +257,6 @@ export default function EmailPage() {
         if (!form.body) return;
         const token = await auth.currentUser?.getIdToken();
         const campaignId = crypto.randomUUID();
-        const baseUrl = window.location.origin;
-        const uid = auth.currentUser?.uid || '';
-        const pixelHtml = `<img src="${baseUrl}/api/tracking/open/${campaignId}?uid=${uid}" width="1" height="1" style="display:none;" />`;
-        const trackedBody = form.body + pixelHtml;
         const res = await fetch('/api/email/send', {
           method: 'POST',
           headers: { 
@@ -270,7 +266,7 @@ export default function EmailPage() {
           body: JSON.stringify({
             to: lead?.email,
             subject: form.subject,
-            body: trackedBody,
+            body: form.body,
             leadId: form.leadId,
             campaignId,
             emailApiKey: useStore.getState().resendKey

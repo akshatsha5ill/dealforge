@@ -3,22 +3,23 @@ import express from 'express';
 import http from 'http';
 import trackingRouter from './tracking.js';
 
-function createTestServer(router) {
+function createTestServer(router: express.Router) {
   const app = express();
   app.use(router);
-  return new Promise((resolve) => {
+  return new Promise<http.Server>((resolve) => {
     const server = http.createServer(app).listen(0, () => resolve(server));
   });
 }
 
-function makeRequest(server, method, path, options = {}) {
-  const port = server.address().port;
-  return new Promise((resolve, reject) => {
+function makeRequest(server: http.Server, method: string, path: string, options: { headers?: Record<string, string>; body?: string | Record<string, unknown> } = {}) {
+  const address = server.address();
+  const port = typeof address === 'object' && address ? address.port : 0;
+  return new Promise<{ status: number | undefined; headers: http.IncomingHttpHeaders; body: Buffer; text: string }>((resolve, reject) => {
     const req = http.request(
       { hostname: 'localhost', port, path, method, headers: options.headers || {} },
       (res) => {
-        const chunks = [];
-        res.on('data', (chunk) => chunks.push(chunk));
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
         res.on('end', () => {
           const body = Buffer.concat(chunks);
           resolve({ status: res.statusCode, headers: res.headers, body, text: body.toString() });
@@ -34,11 +35,11 @@ function makeRequest(server, method, path, options = {}) {
 }
 
 describe('tracking routes', () => {
-  let server;
+  let server: http.Server | null;
 
   afterEach(async () => {
     if (server) {
-      await new Promise((resolve) => server.close(resolve));
+      await new Promise<void>((resolve) => server!.close(() => resolve()));
       server = null;
     }
   });

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import admin from '../services/firebase-admin.js';
+import { getFirebaseAuth } from '../services/firebase-admin.js';
 import log from '../utils/logger.js';
 
 export interface AuthRequest extends Request {
@@ -16,7 +16,7 @@ const verifyAuth = async (req: AuthRequest, res: Response, next: NextFunction) =
   const token = authHeader.split('Bearer ')[1];
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(token, true);
+    const decodedToken = await getFirebaseAuth().verifyIdToken(token, true);
     req.user = decodedToken;
     next();
   } catch (error: unknown) {

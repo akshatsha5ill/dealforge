@@ -28,7 +28,9 @@ class BufferService {
   private async _initRedis() {
     if (config.redis.url) {
       try {
-        const Redis = (await import('ioredis')).default;
+        const ioredis = await import('ioredis');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const Redis = ioredis.default as any;
         this.redis = new Redis(config.redis.url, {
           maxRetriesPerRequest: 3,
           retryStrategy(times: number) {

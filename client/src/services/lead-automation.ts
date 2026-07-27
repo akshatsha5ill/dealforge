@@ -58,7 +58,7 @@ class LeadAutomationService {
     const model = storeState.geminiKey ? 'gemini' : storeState.openAiKey ? 'openai' : 'anthropic';
     
     if (!apiKey) {
-      console.warn('Cannot auto-analyze meeting: No API key configured.');
+      useStore.getState().setError('Lead Automation: No AI API key configured. Please add Gemini, OpenAI, or Anthropic key in Settings.');
       return;
     }
 

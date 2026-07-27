@@ -32,3 +32,37 @@ Return only a JSON object with:
   "subject": "Follow-up: [Topic]",
   "body": "The email body..."
 }`;
+
+export const MEETING_SUGGESTIONS_PROMPT = `You are an expert meeting analyst. Analyze the provided meeting transcript and generate real-time suggestions.
+Focus on extracting actionable insights, identifying follow-up opportunities, and suggesting next steps.
+
+Return a JSON object with the following schema:
+{
+  "suggestions": [
+    {
+      "title": "Brief title for the suggestion",
+      "content": "Detailed description of the suggestion or action item"
+    }
+  ],
+  "actionItems": [
+    {
+      "task": "Description of the task",
+      "assignee": "Name of assignee or 'Unassigned'"
+    }
+  ],
+  "followUps": [
+    "Follow-up action needed"
+  ],
+  "nextSteps": [
+    "Recommended next step"
+  ]
+}
+
+Focus on:
+1. Action items that need to be completed
+2. Follow-up tasks or communications needed
+3. Decisions that need to be made
+4. Deadlines or time-sensitive items
+5. Meeting coordination tasks
+
+Only return the JSON object, nothing else.`;

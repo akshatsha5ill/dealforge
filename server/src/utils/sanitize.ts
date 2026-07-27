@@ -1,6 +1,6 @@
-import xss from 'xss';
+import { FilterXSS, type IFilterXSSOptions } from 'xss';
 
-const myXss = new xss.FilterXSS({
+const myXss = new FilterXSS({
   whiteList: {}, // empty, means filter out all tags
   stripIgnoreTag: true,
   stripIgnoreTagBody: ['script'] // the script tag is a special case, we need to filter out its content

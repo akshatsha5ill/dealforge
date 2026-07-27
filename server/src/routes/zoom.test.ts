@@ -4,11 +4,11 @@ import http from 'http';
 import { errorHandler } from '../middleware/errorHandler.js';
 
 describe('Zoom Routes', () => {
-  let server;
+  let server: http.Server | null;
 
   afterEach(async () => {
     if (server) {
-      await new Promise((resolve) => server.close(resolve));
+      await new Promise<void>((resolve) => server!.close(() => resolve()));
       server = null;
     }
     vi.clearAllMocks();
@@ -21,8 +21,9 @@ describe('Zoom Routes', () => {
     app.use('/api/zoom', zoomRoutes);
     app.use(errorHandler);
     server = http.createServer(app);
-    await new Promise((resolve) => server.listen(0, resolve));
-    const port = server.address().port;
+    await new Promise<void>((resolve) => server!.listen(0, resolve));
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
@@ -44,8 +45,9 @@ describe('Zoom Routes', () => {
     app.use('/api/zoom', zoomRoutes);
     app.use(errorHandler);
     server = http.createServer(app);
-    await new Promise((resolve) => server.listen(0, resolve));
-    const port = server.address().port;
+    await new Promise<void>((resolve) => server!.listen(0, resolve));
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
 
     const res = await fetch(`http://localhost:${port}/api/zoom/webhook`, {
       method: 'POST',
@@ -63,8 +65,9 @@ describe('Zoom Routes', () => {
     app.use('/api/zoom', zoomRoutes);
     app.use(errorHandler);
     server = http.createServer(app);
-    await new Promise((resolve) => server.listen(0, resolve));
-    const port = server.address().port;
+    await new Promise<void>((resolve) => server!.listen(0, resolve));
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
 
     const res = await fetch(`http://localhost:${port}/api/zoom/webhook`, {
       method: 'POST',
@@ -81,8 +84,9 @@ describe('Zoom Routes', () => {
     app.use('/api/zoom', zoomRoutes);
     app.use(errorHandler);
     server = http.createServer(app);
-    await new Promise((resolve) => server.listen(0, resolve));
-    const port = server.address().port;
+    await new Promise<void>((resolve) => server!.listen(0, resolve));
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
 
     const res = await fetch(`http://localhost:${port}/api/zoom/transcription`, {
       method: 'POST',
@@ -99,8 +103,9 @@ describe('Zoom Routes', () => {
     app.use('/api/zoom', zoomRoutes);
     app.use(errorHandler);
     server = http.createServer(app);
-    await new Promise((resolve) => server.listen(0, resolve));
-    const port = server.address().port;
+    await new Promise<void>((resolve) => server!.listen(0, resolve));
+    const address = server.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
 
     const res = await fetch(`http://localhost:${port}/api/zoom/notes`, {
       method: 'POST',
