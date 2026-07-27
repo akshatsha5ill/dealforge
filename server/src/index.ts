@@ -33,7 +33,7 @@ import admin from './services/firebase-admin.js';
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigin = config.isProd ? (config.clientUrl || 'http://localhost:5173') : '*';
+const allowedOrigin = config.clientUrl || 'http://localhost:5173';
 
 const io = new Server(server, {
   cors: {
