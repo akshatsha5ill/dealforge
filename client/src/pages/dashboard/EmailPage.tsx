@@ -302,6 +302,7 @@ export default function EmailPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this email campaign?')) return;
     await db.email_campaigns.delete(id);
     loadData();
   };
@@ -317,6 +318,7 @@ export default function EmailPage() {
   };
 
   const handleDeleteDrip = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this drip campaign?')) return;
     try {
       await db.drip_campaigns.delete(id);
       loadData();

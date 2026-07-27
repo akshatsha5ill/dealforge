@@ -4,6 +4,7 @@ import { encryptKey, decryptKey } from '../../crypto/key-vault';
 import { db } from '../../services/local-db/db';
 import { requestPersistence, exportAllData, importData, downloadJSON, getStorageUsage, selectBackupDirectory, importFromJSONFile, StorageUsage } from '../../services/local-db/backup';
 import { Database, Upload, Download, HardDrive } from 'lucide-react';
+import { toast } from '../../components/common/Toast';
 
 export default function SettingsPage() {
   const { setOpenAiKey, setAnthropicKey, setGeminiKey, setResendKey } = useStore();
@@ -42,10 +43,10 @@ export default function SettingsPage() {
     if (e.target.files && e.target.files[0]) {
       try {
         await importFromJSONFile(e.target.files[0]);
-        alert('Data imported successfully!');
+        toast.success('Data imported successfully!');
       } catch (err) {
         console.error(err);
-        alert('Failed to import data');
+        toast.error('Failed to import data');
       }
     }
   };
@@ -54,10 +55,10 @@ export default function SettingsPage() {
     try {
       await selectBackupDirectory();
       setHasBackupDir(true);
-      alert('Auto-backup folder selected successfully!');
+      toast.success('Auto-backup folder selected successfully!');
     } catch (err) {
       console.error(err);
-      alert('Failed to setup auto-backup directory');
+      toast.error('Failed to setup auto-backup directory');
     }
   };
 

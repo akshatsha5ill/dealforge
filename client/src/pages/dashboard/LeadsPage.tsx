@@ -5,6 +5,7 @@ import { Lead } from '../../types';
 import { scoreLead } from '../../services/ai/ai-service';
 import { useStore } from '../../store';
 import { Loader2, RefreshCw } from 'lucide-react';
+import { toast } from '../../components/common/Toast';
 
 const stages = ['Discovery', 'Demo', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
 
@@ -42,13 +43,13 @@ export default function LeadsPage() {
     try {
       const transcript = await db.transcripts.where('meetingId').equals(lead.meetingId).first();
       if (!transcript) {
-        alert('No transcript found for this lead.');
+        toast.info('No transcript found for this lead.');
         return;
       }
       
       const apiKey = openAiKey || anthropicKey;
       if (!apiKey) {
-        alert('Please set an API key in Settings before rescoring.');
+        toast.info('Please set an API key in Settings before rescoring.');
         return;
       }
       const model = openAiKey ? 'openai' : 'anthropic';
@@ -79,7 +80,7 @@ export default function LeadsPage() {
       }
     } catch (err) {
       console.error('Failed to rescore lead:', err);
-      alert('Failed to rescore lead.');
+      toast.error('Failed to rescore lead.');
     } finally {
       setLoadingRescore(prev => ({ ...prev, [lead.id]: false }));
     }

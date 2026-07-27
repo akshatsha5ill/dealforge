@@ -124,6 +124,7 @@ export default function PipelinePage() {
   };
 
   const deleteDeal = async (dealId: string) => {
+    if (!window.confirm('Are you sure you want to delete this deal?')) return;
     await dealsDB.delete(dealId);
     loadDeals();
   };
