@@ -1,12 +1,21 @@
 import React, { useEffect } from 'react';
 import { Send, Sparkles, FileText, Plus, Trash2 } from 'lucide-react';
 import { RichTextEditor } from '../common/RichTextEditor';
+import { Lead, EmailSequenceStep } from '../../types';
 import './Email.css';
 
+interface EmailForm {
+  leadId: string;
+  subject: string;
+  body: string;
+  type: string;
+  sequence?: EmailSequenceStep[];
+}
+
 interface ComposeEmailProps {
-  form: { leadId: string; subject: string; body: string; type: string };
-  setForm: React.Dispatch<React.SetStateAction<any>>;
-  leads: any[];
+  form: EmailForm;
+  setForm: React.Dispatch<React.SetStateAction<EmailForm>>;
+  leads: Lead[];
   getLeadName: (id: string) => string;
   getLeadEmail: (id: string) => string;
   getLeadCompany: (id: string) => string;
@@ -34,7 +43,7 @@ export const ComposeEmailCard: React.FC<ComposeEmailProps> = ({
 }) => {
   useEffect(() => {
     if (form.type === 'drip_campaign' && (!form.sequence || form.sequence.length === 0)) {
-      setForm((prev: any) => ({
+      setForm((prev) => ({
         ...prev,
         sequence: [{ delayDays: 1, subject: '', body: '' }]
       }));
@@ -42,22 +51,22 @@ export const ComposeEmailCard: React.FC<ComposeEmailProps> = ({
   }, [form.type, setForm]);
 
   const addSequenceStep = () => {
-    setForm((prev: any) => ({
+    setForm((prev) => ({
       ...prev,
       sequence: [...(prev.sequence || []), { delayDays: 1, subject: '', body: '' }]
     }));
   };
 
   const removeSequenceStep = (index: number) => {
-    setForm((prev: any) => {
+    setForm((prev) => {
       const newSeq = [...(prev.sequence || [])];
       newSeq.splice(index, 1);
       return { ...prev, sequence: newSeq };
     });
   };
 
-  const updateSequenceStep = (index: number, field: string, value: any) => {
-    setForm((prev: any) => {
+  const updateSequenceStep = (index: number, field: keyof EmailSequenceStep, value: string | number) => {
+    setForm((prev) => {
       const newSeq = [...(prev.sequence || [])];
       newSeq[index] = { ...newSeq[index], [field]: value };
       return { ...prev, sequence: newSeq };
@@ -86,7 +95,7 @@ export const ComposeEmailCard: React.FC<ComposeEmailProps> = ({
           <label className="form-label">Lead</label>
           <select
             value={form.leadId}
-            onChange={(e) => setForm((prev: any) => ({ ...prev, leadId: e.target.value }))}
+            onChange={(e) => setForm((prev) => ({ ...prev, leadId: e.target.value }))}
             className="input-style"
             style={{ cursor: 'pointer', appearance: 'none' }}
           >
@@ -102,7 +111,7 @@ export const ComposeEmailCard: React.FC<ComposeEmailProps> = ({
           <label className="form-label">Type</label>
           <select
             value={form.type}
-            onChange={(e) => setForm((prev: any) => ({ ...prev, type: e.target.value }))}
+            onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value }))}
             className="input-style"
             style={{ cursor: 'pointer', appearance: 'none' }}
           >
@@ -133,7 +142,7 @@ export const ComposeEmailCard: React.FC<ComposeEmailProps> = ({
             <input
               type="text"
               value={form.subject}
-              onChange={(e) => setForm((prev: any) => ({ ...prev, subject: e.target.value }))}
+              onChange={(e) => setForm((prev) => ({ ...prev, subject: e.target.value }))}
               placeholder="Email subject line..."
               className="input-style"
             />
@@ -142,7 +151,7 @@ export const ComposeEmailCard: React.FC<ComposeEmailProps> = ({
             <label className="form-label">Body</label>
             <RichTextEditor
               value={form.body}
-              onChange={(val) => setForm((prev: any) => ({ ...prev, body: val }))}
+              onChange={(val) => setForm((prev) => ({ ...prev, body: val }))}
               placeholder="Write your email content..."
             />
           </div>
@@ -156,13 +165,13 @@ export const ComposeEmailCard: React.FC<ComposeEmailProps> = ({
             <input
               type="text"
               value={form.subject}
-              onChange={(e) => setForm((prev: any) => ({ ...prev, subject: e.target.value }))}
+              onChange={(e) => setForm((prev) => ({ ...prev, subject: e.target.value }))}
               placeholder="e.g. Q3 Outreach Sequence"
               className="input-style"
             />
           </div>
           <h3 className="form-label" style={{ marginTop: '24px', marginBottom: '12px' }}>Email Sequence</h3>
-          {(form.sequence || []).map((step: any, idx: number) => (
+          {(form.sequence || []).map((step, idx) => (
             <div key={idx} className="sequence-step-card">
               <div className="sequence-header">
                 <span className="sequence-title">Step {idx + 1}</span>

@@ -24,13 +24,13 @@ const handleResponse = async <T>(response: Response): Promise<T> => {
 };
 
 export const apiClient = {
-  get: async <T = any>(endpoint: string): Promise<T> => {
+  get: async <T = Record<string, unknown>>(endpoint: string): Promise<T> => {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       headers: await getHeaders(),
     });
     return handleResponse<T>(response);
   },
-  post: async <T = any>(endpoint: string, data?: any): Promise<T> => {
+  post: async <T = Record<string, unknown>>(endpoint: string, data?: Record<string, unknown>): Promise<T> => {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       method: 'POST',
       headers: await getHeaders(),
@@ -38,7 +38,7 @@ export const apiClient = {
     });
     return handleResponse<T>(response);
   },
-  put: async <T = any>(endpoint: string, data: any): Promise<T> => {
+  put: async <T = Record<string, unknown>>(endpoint: string, data: Record<string, unknown>): Promise<T> => {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       method: 'PUT',
       headers: await getHeaders(),
@@ -46,7 +46,7 @@ export const apiClient = {
     });
     return handleResponse<T>(response);
   },
-  patch: async <T = any>(endpoint: string, data: any): Promise<T> => {
+  patch: async <T = Record<string, unknown>>(endpoint: string, data: Record<string, unknown>): Promise<T> => {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       method: 'PATCH',
       headers: await getHeaders(),
@@ -54,7 +54,7 @@ export const apiClient = {
     });
     return handleResponse<T>(response);
   },
-  delete: async <T = any>(endpoint: string): Promise<T> => {
+  delete: async <T = Record<string, unknown>>(endpoint: string): Promise<T> => {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       method: 'DELETE',
       headers: await getHeaders(),

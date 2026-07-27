@@ -1,16 +1,19 @@
 import log from '../utils/logger.js';
 import { config } from '../config.js';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RedisClient = any;
+
 interface BufferEntry<T> {
   data: T;
   timestamp: number;
 }
 
 class BufferService {
-  private buffer: Map<string, BufferEntry<any>>;
+  private buffer: Map<string, BufferEntry<unknown>>;
   private ttl: number;
   private cleanupInterval: NodeJS.Timeout;
-  private redis: any = null;
+  private redis: RedisClient | null = null;
   private useRedis = false;
   private static MAX_ENTRIES = 10000;
 

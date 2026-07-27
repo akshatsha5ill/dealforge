@@ -89,6 +89,22 @@
           "notes": { "type": "object", "nullable": true },
           "meeting": { "type": "object", "nullable": true }
         }
+      },
+      "LeadScore": {
+        "type": "object",
+        "properties": {
+          "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "reasoning": { "type": "string" },
+          "category": { "type": "string", "enum": ["hot", "warm", "cold"] }
+        }
+      },
+      "EmailSendResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "from": { "type": "string" },
+          "to": { "type": "string" }
+        }
       }
     }
   },
@@ -339,7 +355,20 @@
           }
         },
         "responses": {
-          "200": { "description": "Lead scored" },
+          "200": {
+            "description": "Lead scored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "score": { "$ref": "#/components/schemas/LeadScore" }
+                  }
+                }
+              }
+            }
+          },
           "400": { "description": "Invalid input" },
           "401": { "description": "Unauthorized" }
         }
@@ -366,7 +395,20 @@
           }
         },
         "responses": {
-          "200": { "description": "Email sent" },
+          "200": {
+            "description": "Email sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "data": { "$ref": "#/components/schemas/EmailSendResponse" }
+                  }
+                }
+              }
+            }
+          },
           "400": { "description": "Invalid input" },
           "401": { "description": "Unauthorized" }
         }

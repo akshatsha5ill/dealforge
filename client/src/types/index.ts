@@ -120,5 +120,5 @@ export interface DripCampaign {
 
 export interface Setting {
   key: string;
-  value: any;
+  value: unknown;
 }

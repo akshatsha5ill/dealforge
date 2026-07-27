@@ -5,9 +5,9 @@ import { config } from '../config.js';
 import { MEETING_ANALYSIS_PROMPT, EMAIL_DRAFT_PROMPT, LEAD_SCORING_PROMPT } from '../utils/prompts.js';
 
 export interface AIProvider {
-  analyzeMeeting(transcript: string): Promise<any>;
-  generateEmailDraft?(transcript: string, context: any): Promise<any>;
-  scoreLead(transcript: string, leadContext: any): Promise<any>;
+  analyzeMeeting(transcript: string): Promise<Record<string, unknown>>;
+  generateEmailDraft?(transcript: string, context: Record<string, unknown>): Promise<Record<string, unknown>>;
+  scoreLead(transcript: string, leadContext: Record<string, unknown>): Promise<Record<string, unknown>>;
 }
 
 import { sanitizeObject } from '../utils/sanitize.js';
@@ -43,7 +43,7 @@ export class OpenAIProvider implements AIProvider {
     return parseAIResponse(response.choices[0].message.content || '');
   }
   
-  async generateEmailDraft(transcript: string, context: any) {
+  async generateEmailDraft(transcript: string, context: Record<string, unknown>) {
     const response = await this.client.chat.completions.create({
       model: config.ai.openaiModel,
       response_format: { type: "json_object" },
@@ -55,7 +55,7 @@ export class OpenAIProvider implements AIProvider {
     return parseAIResponse(response.choices[0].message.content || '');
   }
 
-  async scoreLead(transcript: string, leadContext: any) {
+  async scoreLead(transcript: string, leadContext: Record<string, unknown>) {
     const response = await this.client.chat.completions.create({
       model: config.ai.openaiModel,
       response_format: { type: "json_object" },
@@ -86,10 +86,10 @@ export class AnthropicProvider implements AIProvider {
         { role: "assistant", content: "{" }
       ],
     });
-    return parseAIResponse("{" + (response.content[0] as any).text);
+    return parseAIResponse("{" + (response.content[0] as { text: string }).text);
   }
 
-  async generateEmailDraft(transcript: string, context: any) {
+  async generateEmailDraft(transcript: string, context: Record<string, unknown>) {
     const response = await this.client.messages.create({
       model: config.ai.anthropicModel,
       max_tokens: 1024,
@@ -99,10 +99,10 @@ export class AnthropicProvider implements AIProvider {
         { role: "assistant", content: "{" }
       ],
     });
-    return parseAIResponse("{" + (response.content[0] as any).text);
+    return parseAIResponse("{" + (response.content[0] as { text: string }).text);
   }
 
-  async scoreLead(transcript: string, leadContext: any) {
+  async scoreLead(transcript: string, leadContext: Record<string, unknown>) {
     const response = await this.client.messages.create({
       model: config.ai.anthropicModel,
       max_tokens: 1024,
@@ -112,7 +112,7 @@ export class AnthropicProvider implements AIProvider {
         { role: "assistant", content: "{" }
       ],
     });
-    return parseAIResponse("{" + (response.content[0] as any).text);
+    return parseAIResponse("{" + (response.content[0] as { text: string }).text);
   }
 }
 
@@ -136,7 +136,7 @@ export class GeminiProvider implements AIProvider {
     return parseAIResponse(response.text || '');
   }
 
-  async generateEmailDraft(transcript: string, context: any) {
+  async generateEmailDraft(transcript: string, context: Record<string, unknown>) {
     const response = await this.client.models.generateContent({
       model: config.ai.geminiModel,
       contents: `Context: ${JSON.stringify(context)}\nTranscript: ${transcript}`,
@@ -148,7 +148,7 @@ export class GeminiProvider implements AIProvider {
     return parseAIResponse(response.text || '');
   }
 
-  async scoreLead(transcript: string, leadContext: any) {
+  async scoreLead(transcript: string, leadContext: Record<string, unknown>) {
     const response = await this.client.models.generateContent({
       model: config.ai.geminiModel,
       contents: `Lead Context: ${JSON.stringify(leadContext)}\nTranscript: ${transcript}`,

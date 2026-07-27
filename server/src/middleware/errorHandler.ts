@@ -15,7 +15,7 @@ export class AppError extends Error {
   }
 }
 
-export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+export const errorHandler = (err: Error & { statusCode?: number; status?: number }, req: Request, res: Response, _next: NextFunction) => {
   // Only log full errors for actual server faults, not validation errors
   if (!err.statusCode || err.statusCode >= 500) {
       log.error(err.message || 'Internal Server Error', { stack: err.stack, path: req.path });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { GripVertical, DollarSign, Percent, Calendar, ArrowLeft, ArrowRight, Trash2 } from 'lucide-react';
+import { Deal } from '../../types';
 import './Pipeline.css';
 
 export const STAGES = [
@@ -24,7 +25,7 @@ export function formatDate(dateStr: string | null) {
 }
 
 interface PipelineCardProps {
-  deal: any;
+  deal: Deal;
   isDragged: boolean;
   onDragStart: (e: React.DragEvent, dealId: string) => void;
   onDragEnd: () => void;

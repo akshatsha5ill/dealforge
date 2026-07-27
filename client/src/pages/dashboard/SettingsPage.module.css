@@ -1,0 +1,309 @@
+.settingsContainer {
+  margin-bottom: 30px;
+}
+
+.settingsTitle {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.settingsSubtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.settingsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 900px;
+}
+
+.apiKeysSection {
+  padding: 28px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--accent-primary);
+}
+
+.sectionDescription {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.formLabel {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.formInput {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 20px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: JetBrains Mono, monospace;
+  font-size: 14px;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.buttonRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.saveButton {
+  padding: 10px 20px;
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.saveButton:hover {
+  opacity: 0.9;
+}
+
+.savedMessage {
+  color: var(--success);
+  font-size: 14px;
+}
+
+.unlockButton {
+  padding: 10px 20px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.unlockButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.securitySection {
+  padding: 28px;
+}
+
+.securityTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.securityNotes {
+  color: var(--text-muted);
+  font-size: 12px;
+  padding-left: 16px;
+  line-height: 1.8;
+}
+
+.dataSection {
+  padding: 28px;
+  grid-column: 1 / -1;
+}
+
+.dataSectionHeader {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dataGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dataCard {
+  padding: 20px;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.dataCardTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dataCardDescription {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+.dataCardButton {
+  padding: 8px 16px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  width: 100%;
+}
+
+.dataCardButton:hover {
+  opacity: 0.9;
+}
+
+.backupActive {
+  background-color: var(--success);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+}
+
+.storageStatus {
+  padding: 16px;
+  background-color: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.storageTitle {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.storageInfo {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.persistenceBadge {
+  color: var(--success);
+}
+
+.persistenceBadgeWarning {
+  color: var(--warning);
+}
+
+.persistenceButton {
+  padding: 6px 12px;
+  background-color: transparent;
+  color: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  padding: 32px;
+  width: 400px;
+  max-width: 90vw;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.modalDescription {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.modalActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.cancelButton {
+  padding: 10px 16px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.encryptButton {
+  padding: 10px 16px;
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.encryptButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .settingsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dataGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .storageStatus {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .modalContent {
+    width: 90vw;
+    padding: 24px;
+  }
+}

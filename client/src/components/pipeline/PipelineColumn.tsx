@@ -1,10 +1,17 @@
 import React from 'react';
+import { Deal } from '../../types';
 import './Pipeline.css';
 import { PipelineCard, formatCurrency } from './PipelineCard';
 
+interface Stage {
+  id: string;
+  label: string;
+  color: string;
+}
+
 interface PipelineColumnProps {
-  stage: any;
-  deals: any[];
+  stage: Stage;
+  deals: Deal[];
   isDragOver: boolean;
   draggedId: string | null;
   onDragOver: (e: React.DragEvent, stageId: string) => void;

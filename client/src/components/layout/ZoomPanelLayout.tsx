@@ -5,7 +5,7 @@ import { initZoom, getMeetingContext } from '../../services/zoom/zoom-sdk';
 
 const ZoomPanelLayout = () => {
   const [isZoomReady, setIsZoomReady] = useState(false);
-  const [zoomContext, setZoomContext] = useState<any>(null);
+  const [zoomContext, setZoomContext] = useState<Record<string, string | number | boolean> | null>(null);
 
   useEffect(() => {
     const setupZoom = async () => {

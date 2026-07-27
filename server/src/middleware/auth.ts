@@ -3,7 +3,7 @@ import admin from '../services/firebase-admin.js';
 import log from '../utils/logger.js';
 
 export interface AuthRequest extends Request {
-  user?: any;
+  user?: { uid: string; email?: string; [key: string]: unknown };
 }
 
 const verifyAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -19,8 +19,9 @@ const verifyAuth = async (req: AuthRequest, res: Response, next: NextFunction) =
     const decodedToken = await admin.auth().verifyIdToken(token, true);
     req.user = decodedToken;
     next();
-  } catch (error: any) {
-    log.error('Token verification failed', { error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    log.error('Token verification failed', { error: message });
     return res.status(401).json({ error: 'Unauthorized: Invalid token' });
   }
 };

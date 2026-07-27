@@ -7,6 +7,8 @@ import { auth } from '../../services/firebase/config';
 import { ComposeEmailCard } from '../../components/email/ComposeEmailCard';
 import { EmailCampaignCard } from '../../components/email/EmailCampaignCard';
 import { DripCampaignCard } from '../../components/email/DripCampaignCard';
+import { confirm } from '../../components/common/ConfirmDialog';
+import { EmailSequenceStep } from '../../types';
 import { EmailCampaign, Lead, DripCampaign } from '../../types';
 import '../../components/email/Email.css';
 
@@ -29,7 +31,13 @@ export default function EmailPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [sendLoading, setSendLoading] = useState(false);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    leadId: string;
+    subject: string;
+    body: string;
+    type: string;
+    sequence?: EmailSequenceStep[];
+  }>({
     leadId: '',
     subject: '',
     body: '',
@@ -86,7 +94,7 @@ export default function EmailPage() {
   const syncTrackingEvents = useCallback(async () => {
     try {
       if (!auth.currentUser) return;
-      const res = await apiClient.get('/tracking/events');
+      const res = await apiClient.get<{ status: string; events: Array<{ campaignId: string; event: string; timestamp?: string }> }>('/tracking/events');
       if (res && res.status === 'success' && res.events && res.events.length > 0) {
         let hasUpdates = false;
         for (const event of res.events) {
@@ -163,7 +171,7 @@ export default function EmailPage() {
         );
         if (meetingForLead) {
           const transcript = transcripts.find(t => t.meetingId === meetingForLead.id);
-          transcriptContext = transcript?.content || transcript?.text || '';
+          transcriptContext = transcript?.fullText || '';
         }
       } catch (err) {
         console.error("Failed to load transcript context for AI draft", err);
@@ -215,12 +223,14 @@ export default function EmailPage() {
       leadId: form.leadId,
       subject: form.subject,
       body: form.body,
-      status: 'draft',
+      status: 'draft' as const,
       type: form.type,
+      sequence: [] as EmailSequenceStep[],
+      scheduledAt: '',
       createdAt: Date.now(),
     };
     await db.email_campaigns.put(campaign);
-    setForm({ leadId: '', subject: '', body: '', type: 'follow_up' });
+    setForm({ leadId: '', subject: '', body: '', type: 'follow_up', sequence: [] });
     setShowCompose(false);
     loadData();
   };
@@ -272,9 +282,11 @@ export default function EmailPage() {
           leadId: form.leadId,
           subject: form.subject,
           body: form.body,
-          status: 'sent',
+          status: 'sent' as const,
           type: form.type,
-          sentAt: Date.now(),
+          sequence: [] as EmailSequenceStep[],
+          scheduledAt: '',
+          sentAt: new Date().toISOString(),
           createdAt: Date.now(),
         };
         await db.email_campaigns.put(campaign);
@@ -291,7 +303,7 @@ export default function EmailPage() {
         }
       }
 
-      setForm({ leadId: '', subject: '', body: '', type: 'follow_up' });
+      setForm({ leadId: '', subject: '', body: '', type: 'follow_up', sequence: [] });
       setShowCompose(false);
       loadData();
     } catch (err) {
@@ -302,7 +314,8 @@ export default function EmailPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this email campaign?')) return;
+    const confirmed = await confirm('Delete Campaign', 'Are you sure you want to delete this email campaign? This cannot be undone.');
+    if (!confirmed) return;
     await db.email_campaigns.delete(id);
     loadData();
   };
@@ -318,7 +331,8 @@ export default function EmailPage() {
   };
 
   const handleDeleteDrip = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this drip campaign?')) return;
+    const confirmed = await confirm('Delete Drip Campaign', 'Are you sure you want to delete this drip campaign? This cannot be undone.');
+    if (!confirmed) return;
     try {
       await db.drip_campaigns.delete(id);
       loadData();

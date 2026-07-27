@@ -5,6 +5,7 @@ import { STAGES, formatCurrency } from '../../components/pipeline/PipelineCard';
 import { PipelineColumn } from '../../components/pipeline/PipelineColumn';
 import { NewDealModal, DealFormData } from '../../components/pipeline/NewDealModal';
 import { Deal } from '../../types';
+import { confirm } from '../../components/common/ConfirmDialog';
 import '../../components/pipeline/Pipeline.css';
 
 export default function PipelinePage() {
@@ -124,7 +125,8 @@ export default function PipelinePage() {
   };
 
   const deleteDeal = async (dealId: string) => {
-    if (!window.confirm('Are you sure you want to delete this deal?')) return;
+    const confirmed = await confirm('Delete Deal', 'Are you sure you want to delete this deal? This cannot be undone.');
+    if (!confirmed) return;
     await dealsDB.delete(dealId);
     loadDeals();
   };

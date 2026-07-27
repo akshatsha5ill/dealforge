@@ -1,17 +1,37 @@
-export interface Meeting {
-  id: string;
-  zoomMeetingId: string;
-  title: string;
-  startTime: Date;
-  endTime: Date;
-  duration: number;
-  status: string;
+export interface TranscriptSegment {
+  speaker: string;
+  text: string;
+  startTime: number;
+  endTime: number;
+}
+
+export interface AnalysisSentiment {
+  overall: string;
+  score: number;
+  notes: string;
+}
+
+export interface AnalysisEmailDraft {
+  subject: string;
+  body: string;
+}
+
+export interface DealNote {
+  text: string;
+  author: string;
+  createdAt: string;
+}
+
+export interface EmailSequenceStep {
+  subject: string;
+  body: string;
+  delayDays: number;
 }
 
 export interface Transcript {
   id: string;
   meetingId: string;
-  segments: any[]; 
+  segments: TranscriptSegment[];
   fullText: string;
   createdAt: Date;
 }
@@ -21,9 +41,9 @@ export interface Analysis {
   meetingId: string;
   summary: string;
   actionItems: string[];
-  sentiment: any;
+  sentiment: AnalysisSentiment;
   leadScore: number;
-  emailDraft: any;
+  emailDraft: AnalysisEmailDraft | null;
   modelUsed: string;
   analyzedAt: Date;
 }
@@ -38,7 +58,7 @@ export interface Lead {
   score: number;
   stage: string;
   tags?: string[];
-  customFields?: Record<string, any>;
+  customFields?: Record<string, string | number | boolean>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -51,7 +71,7 @@ export interface Deal {
   value: number;
   probability: number;
   expectedClose: Date;
-  notes: any;
+  notes: DealNote[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,7 +83,7 @@ export interface EmailCampaign {
   body: string;
   status: string;
   type: string;
-  sequence: any[];
+  sequence: EmailSequenceStep[];
   scheduledAt: Date;
   sentAt?: Date;
 }

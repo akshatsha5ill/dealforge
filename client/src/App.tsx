@@ -9,9 +9,11 @@ import { runAutoBackup, verifyPermission } from './services/local-db/backup';
 import { initAnalytics } from './services/analytics';
 import CookieConsent from './components/common/CookieConsent';
 import ToastContainer, { toast } from './components/common/Toast';
+import ConfirmDialogContainer from './components/common/ConfirmDialog';
 import './index.css';
 
 function App() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [needsBackupPermission, setNeedsBackupPermission] = useState<any>(null);
   useEffect(() => {
     initAuthListener();
@@ -73,6 +75,7 @@ function App() {
     <>
       <RouterProvider router={router} />
       <ToastContainer />
+      <ConfirmDialogContainer />
       <CookieConsent />
       {needsBackupPermission && (
         <div className="ds-panel" style={{ position: 'fixed', bottom: '32px', right: '32px', padding: '24px', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '300px', boxShadow: '0 8px 32px rgba(168, 119, 20, 0.2)', border: '1px solid var(--secondary)' }}>

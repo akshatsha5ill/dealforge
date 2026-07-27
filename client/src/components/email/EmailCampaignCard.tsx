@@ -1,13 +1,21 @@
 import React from 'react';
 import { Send, Trash2, Pause, Play } from 'lucide-react';
+import { EmailCampaign } from '../../types';
 import './Email.css';
 
+interface StatusConfig {
+  color: string;
+  bg: string;
+  icon: typeof Send;
+  label: string;
+}
+
 interface EmailCampaignCardProps {
-  campaign: any;
-  statusConfig: any;
+  campaign: EmailCampaign & { isDrip?: boolean; rawStatus?: string };
+  statusConfig: Record<string, StatusConfig>;
   getLeadName: (id: string) => string;
   getLeadEmail: (id: string) => string;
-  handleSendDraft: (campaign: any) => void;
+  handleSendDraft: (campaign: EmailCampaign) => void;
   handleDelete: (id: string) => void;
   handleToggleDripStatus?: (id: string, newStatus: string) => void;
 }
