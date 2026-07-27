@@ -1,11 +1,12 @@
 import { StateCreator } from 'zustand';
 import { StoreState } from './index';
+import { User } from 'firebase/auth';
 
 export interface AuthSlice {
-  user: any | null; 
+  user: User | null; 
   isAuthenticated: boolean;
   isAuthReady: boolean;
-  setUser: (user: any) => void;
+  setUser: (user: User | null) => void;
   setAuthReady: (status: boolean) => void;
   logout: () => void;
 }

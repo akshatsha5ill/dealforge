@@ -111,4 +111,19 @@ router.post(
   }
 );
 
+router.get('/oauth/:provider', (req: Request, res: Response) => {
+  const provider = req.params.provider;
+  const redirectUrl = req.query.redirect as string || 'http://localhost:5173/settings';
+  
+  // In a real implementation, this would redirect to Google/Microsoft OAuth URL
+  // Here we simulate the successful OAuth callback by redirecting back with success params
+  const email = `user@${provider === 'gmail' ? 'gmail.com' : 'outlook.com'}`;
+  const callbackUrl = new URL(redirectUrl);
+  callbackUrl.searchParams.set('oauth_success', 'true');
+  callbackUrl.searchParams.set('provider', provider);
+  callbackUrl.searchParams.set('email', email);
+  
+  res.redirect(302, callbackUrl.toString());
+});
+
 export default router;

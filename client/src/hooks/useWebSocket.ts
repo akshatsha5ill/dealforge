@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { io } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 
-let sharedSocket: any = null;
+let sharedSocket: Socket | null = null;
 
 export const getSharedSocket = () => sharedSocket;
 

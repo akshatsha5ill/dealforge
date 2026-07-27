@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { validateRequest } from 'zod-express-middleware';
 import { AppError } from '../middleware/errorHandler.js';
 import log from '../utils/logger.js';
-import admin from '../services/firebase-admin.js';
+
 
 const router = express.Router();
 const stripe = new Stripe(config.stripe.secretKey || '');
@@ -123,18 +123,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   res.status(200).json({ received: true });
 });
 
-router.get('/status', verifyAuth, async (req: any, res: express.Response) => {
-  try {
-    const doc = await admin.firestore().collection('users').doc(req.user.uid).get();
-    if (doc.exists) {
-      res.status(200).json({ status: 'success', plan: doc.data()?.plan || null, active: doc.data()?.status === 'active' });
-    } else {
-      res.status(200).json({ status: 'success', plan: null, active: false });
-    }
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch billing status' });
-  }
-});
+
 
 router.get('/plans', (req, res) => {
   const plans = Object.entries(PLANS).map(([key, val]) => ({

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import './RichTextEditor.css';
 
@@ -14,7 +15,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
   // Set initial value only once to avoid cursor jumping
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value || '';
+      editorRef.current.innerHTML = DOMPurify.sanitize(value || '');
     }
   }, [value]);
 

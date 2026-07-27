@@ -23,15 +23,23 @@ import admin from './services/firebase-admin.js';
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigin = config.isProd
-  ? config.clientUrl
-  : (config.clientUrl || true);
+const allowedOrigin = config.clientUrl || 'http://localhost:5173';
 
 const io = new Server(server, {
   cors: {
     origin: allowedOrigin,
     methods: ['GET', 'POST']
   }
+});
+
+process.on('uncaughtException', (err) => {
+  log.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  log.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });
 
 const port = config.port;
@@ -104,9 +112,9 @@ const requestLogger = (req: express.Request, res: express.Response, next: expres
 };
 app.use(requestLogger);
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', apiLimiter, authRoutes);
 app.use('/api/zoom', zoomRoutes);
-app.use('/api/tracking', trackingRoutes);
+app.use('/api/tracking', apiLimiter, trackingRoutes);
 app.use('/api/billing', billingRoutes);
 
 app.use('/api/ai', verifyAuth, aiLimiter, aiRoutes);
@@ -144,36 +152,36 @@ app.use(errorHandler);
 
 app.set('io', io);
 
-io.on('connection', (socket) => {
+io.use((socket: any, next) => {
   const token = socket.handshake.auth?.token || socket.handshake.query?.token;
   if (!token) {
-    log.warn('Socket connection rejected: no token', { socketId: socket.id });
-    socket.disconnect(true);
-    return;
+    return next(new Error('Authentication error'));
   }
-
   admin.auth().verifyIdToken(token, true)
     .then((decodedToken) => {
       socket.user = decodedToken;
-      log.info('Client connected', { socketId: socket.id, uid: decodedToken.uid });
-
-      socket.on('join_meeting', (meetingId) => {
-        socket.join(`meeting:${meetingId}`);
-        log.info('Socket joined meeting room', { socketId: socket.id, meetingId, uid: decodedToken.uid });
-      });
-
-      socket.on('save_note', (note) => {
-        log.info('Note received via WS', { socketId: socket.id, uid: decodedToken.uid });
-      });
-
-      socket.on('disconnect', () => {
-        log.info('Client disconnected', { socketId: socket.id, uid: decodedToken.uid });
-      });
+      next();
     })
     .catch((err) => {
-      log.warn('Socket authentication failed', { socketId: socket.id, error: err.message });
-      socket.disconnect(true);
+      next(new Error('Authentication error'));
     });
+});
+
+io.on('connection', (socket: any) => {
+  log.info('Client connected', { socketId: socket.id, uid: socket.user.uid });
+
+  socket.on('join_meeting', (meetingId: string) => {
+    socket.join(`meeting:${meetingId}`);
+    log.info('Socket joined meeting room', { socketId: socket.id, meetingId, uid: socket.user.uid });
+  });
+
+  socket.on('save_note', (note: any) => {
+    log.info('Note received via WS', { socketId: socket.id, uid: socket.user.uid });
+  });
+
+  socket.on('disconnect', () => {
+    log.info('Client disconnected', { socketId: socket.id, uid: socket.user.uid });
+  });
 });
 
 const gracefulShutdown = (signal: string) => {

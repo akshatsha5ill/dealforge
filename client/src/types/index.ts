@@ -112,6 +112,7 @@ export interface DripCampaign {
   name: string;
   status: 'active' | 'completed' | 'error' | 'paused' | string;
   currentStep: number;
+  totalSteps?: number;
   nextRunAt: number | null;
   createdAt: number;
   error?: string;

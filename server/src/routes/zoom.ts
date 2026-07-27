@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import admin from '../services/firebase-admin.js';
 import crypto from 'crypto';
 import https from 'https';
 import bufferService from '../services/buffer-service.js';
@@ -177,6 +178,21 @@ router.post('/deauth', (req: Request, res: Response, next: express.NextFunction)
   const accountId = payload?.account_id;
   
   console.log(`Deauth event received for user ${userId}, account ${accountId}`);
+  
+  if (userId) {
+    admin.firestore().collection('users').where('zoomUserId', '==', userId).get()
+      .then(snapshot => {
+        snapshot.forEach(doc => {
+          doc.ref.update({ 
+            zoomLinked: false, 
+            zoomUserId: admin.firestore.FieldValue.delete(),
+            zoomAccessToken: admin.firestore.FieldValue.delete(),
+            zoomRefreshToken: admin.firestore.FieldValue.delete()
+          });
+        });
+      })
+      .catch(err => console.error('Failed to clean up user on deauth', err));
+  }
   
   return res.status(200).json({ status: 'ok' });
 });

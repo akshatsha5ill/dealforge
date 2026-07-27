@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Send, Sparkles, FileText, Plus, Trash2 } from 'lucide-react';
-import { RichTextEditor } from './RichTextEditor';
+import { RichTextEditor } from '../common/RichTextEditor';
 import './Email.css';
 
 interface ComposeEmailProps {

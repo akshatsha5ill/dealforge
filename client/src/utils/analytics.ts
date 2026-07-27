@@ -147,7 +147,7 @@ export function buildMeetingFrequencyData(meetings: MeetingData[], days: number)
 }
 
 export function buildPipelineVelocity(deals: DealData[]) {
-  const wonDeals = deals.filter(d => d.stage === 'won' && d.createdAt && d.updatedAt);
+  const wonDeals = deals.filter(d => d.stage === 'closed_won' && d.createdAt && d.updatedAt);
   if (wonDeals.length === 0) return 0;
   
   let totalDays = 0;

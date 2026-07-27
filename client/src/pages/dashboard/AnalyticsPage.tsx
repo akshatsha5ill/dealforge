@@ -5,7 +5,7 @@ import { db } from '../../services/local-db/db';
 import { Meeting, Lead, Deal, EmailCampaign } from '../../types';
 
 const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
-import { filterByDate, buildMeetingTrendData, buildPipelineData, buildLeadStageData, buildEmailData, calculatePipelineVelocity, buildMeetingFrequencyData, buildPipelineVelocity, buildLeadScoreTrend } from '../../utils/analytics';
+import { filterByDate, buildMeetingTrendData, buildPipelineData, buildLeadStageData, buildEmailData, calculatePipelineVelocity, buildMeetingFrequencyData, buildLeadScoreTrend } from '../../utils/analytics';
 
 const tooltipStyle = { backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '13px' };
 const axisTick = { fill: 'var(--text-muted)', fontSize: 12 };
@@ -49,7 +49,7 @@ export default function AnalyticsPage() {
   const pipelineData = buildPipelineData(filteredDeals);
   const leadStageData = buildLeadStageData(filteredLeads);
   const emailData = buildEmailData(filteredEmails);
-  const pipelineVelocity = buildPipelineVelocity(filteredDeals);
+
   const leadScoreData = buildLeadScoreTrend(filteredLeads);
 
   const { velocity, avgSalesCycle } = calculatePipelineVelocity(filteredDeals);

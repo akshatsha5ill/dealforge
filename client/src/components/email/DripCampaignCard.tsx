@@ -65,13 +65,13 @@ export const DripCampaignCard: React.FC<DripCampaignCardProps> = ({
           <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Step Progress</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>{campaign.currentStep}</span>
-            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>/ 3</span>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>/ {campaign.totalSteps || 3}</span>
           </div>
           <div style={{ marginTop: '8px', height: '4px', backgroundColor: 'var(--bg-secondary)', borderRadius: '2px', overflow: 'hidden' }}>
             <div style={{ 
               height: '100%', 
               backgroundColor: 'var(--accent-primary)', 
-              width: `${(campaign.currentStep / 3) * 100}%`,
+              width: `${(campaign.currentStep / (campaign.totalSteps || 3)) * 100}%`,
               transition: 'width 0.3s ease'
             }} />
           </div>

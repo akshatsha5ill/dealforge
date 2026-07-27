@@ -1,15 +1,18 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { Mic, Lightbulb, PenSquare } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { initZoom } from '../../services/zoom/zoom-sdk';
+import { initZoom, getMeetingContext } from '../../services/zoom/zoom-sdk';
 
 const ZoomPanelLayout = () => {
   const [isZoomReady, setIsZoomReady] = useState(false);
+  const [zoomContext, setZoomContext] = useState<any>(null);
 
   useEffect(() => {
     const setupZoom = async () => {
       try {
         await initZoom();
+        const ctx = await getMeetingContext();
+        setZoomContext(ctx);
       } catch (err) {
         console.warn('Running outside of Zoom environment.', err);
       }
@@ -70,7 +73,7 @@ const ZoomPanelLayout = () => {
         </NavLink>
       </div>
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        <Outlet />
+        <Outlet context={{ zoomContext }} />
       </div>
     </div>
   );

@@ -15,9 +15,29 @@ export function EmailIntegrationSettings() {
 
   useEffect(() => {
     const loadProvider = async () => {
-      const stored = await db.settings.get('email_provider');
-      if (stored && stored.value) {
-        setProvider(stored.value);
+      const urlParams = new URLSearchParams(window.location.search);
+      const isSuccess = urlParams.get('oauth_success');
+      
+      if (isSuccess === 'true') {
+        const providerType = urlParams.get('provider') as 'gmail' | 'outlook';
+        const email = urlParams.get('email') || '';
+        
+        const config: EmailProviderConfig = {
+          type: providerType,
+          connected: true,
+          email,
+          connectedAt: Date.now()
+        };
+        await db.settings.put({ key: 'email_provider', value: config });
+        setProvider(config);
+        
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        const stored = await db.settings.get('email_provider');
+        if (stored && stored.value) {
+          setProvider(stored.value);
+        }
       }
       setLoading(false);
     };
@@ -26,18 +46,8 @@ export function EmailIntegrationSettings() {
 
   const connectProvider = async (type: 'gmail' | 'outlook') => {
     setLoading(true);
-    // Mock OAuth flow
-    setTimeout(async () => {
-      const config: EmailProviderConfig = {
-        type,
-        connected: true,
-        email: `user@${type === 'gmail' ? 'gmail.com' : 'outlook.com'}`,
-        connectedAt: Date.now()
-      };
-      await db.settings.put({ key: 'email_provider', value: config });
-      setProvider(config);
-      setLoading(false);
-    }, 1500);
+    // Redirect to real OAuth flow on the server
+    window.location.href = `/api/email/oauth/${type}?redirect=${encodeURIComponent(window.location.href)}`;
   };
 
   const disconnectProvider = async () => {
@@ -112,12 +122,6 @@ export function EmailIntegrationSettings() {
         </div>
       )}
       
-      {!provider.connected && (
-        <div style={{ marginTop: '16px', padding: '12px', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderLeft: '4px solid #3b82f6', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <AlertCircle size={20} color="#3b82f6" />
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Note: In this demo, connecting an account uses a mocked OAuth flow and does not actually authenticate with Google or Microsoft.</p>
-        </div>
-      )}
     </div>
   );
 }
