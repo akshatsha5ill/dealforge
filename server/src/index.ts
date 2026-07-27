@@ -1,5 +1,15 @@
 import express from 'express';
 import http from 'http';
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
 import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -30,16 +40,6 @@ const io = new Server(server, {
     origin: allowedOrigin,
     methods: ['GET', 'POST']
   }
-});
-
-process.on('uncaughtException', (err) => {
-  log.error('Uncaught Exception:', err);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  log.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
 });
 
 const port = config.port;
@@ -80,6 +80,22 @@ app.use(express.json({ limit: '100kb' }));
 app.use(sanitize);
 app.use('/api', apiLimiter);
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 auth requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many auth requests, please try again later.' }
+});
+
+const trackingLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 300, // limit each IP to 300 tracking requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many tracking requests' }
+});
+
 const aiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
@@ -112,9 +128,9 @@ const requestLogger = (req: express.Request, res: express.Response, next: expres
 };
 app.use(requestLogger);
 
-app.use('/api/auth', apiLimiter, authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/zoom', zoomRoutes);
-app.use('/api/tracking', apiLimiter, trackingRoutes);
+app.use('/api/tracking', trackingLimiter, trackingRoutes);
 app.use('/api/billing', billingRoutes);
 
 app.use('/api/ai', verifyAuth, aiLimiter, aiRoutes);

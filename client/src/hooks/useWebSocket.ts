@@ -16,17 +16,25 @@ export const useWebSocket = () => {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    if (!sharedSocket) {
-      sharedSocket = io(window.location.origin, {
-        transports: ['websocket', 'polling'],
-        reconnection: true,
-        reconnectionAttempts: 10,
-        reconnectionDelay: 1000,
-      });
+    const setupSocket = async () => {
+      if (!sharedSocket) {
+        let token = undefined;
+        try {
+          const auth = (await import('../services/firebase/config')).auth;
+          token = await auth.currentUser?.getIdToken();
+        } catch (e) {}
 
-    }
-
-    socketRef.current = sharedSocket;
+        sharedSocket = io(window.location.origin, {
+          auth: { token },
+          transports: ['websocket', 'polling'],
+          reconnection: true,
+          reconnectionAttempts: 10,
+          reconnectionDelay: 1000,
+        });
+      }
+      socketRef.current = sharedSocket;
+    };
+    setupSocket();
 
     return () => {
       // Don't disconnect the shared socket on component unmount

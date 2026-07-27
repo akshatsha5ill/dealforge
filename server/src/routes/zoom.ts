@@ -148,7 +148,7 @@ router.post('/webhook', (req: Request, res: Response, next: express.NextFunction
   return res.status(200).json({ status: 'ok' });
 });
 
-router.post('/deauth', (req: Request, res: Response, next: express.NextFunction): any => {
+router.post('/deauth', async (req: Request, res: Response, next: express.NextFunction): Promise<any> => {
   const { payload } = req.body;
   const secret = config.zoom.webhookSecretToken;
 
@@ -180,18 +180,21 @@ router.post('/deauth', (req: Request, res: Response, next: express.NextFunction)
   console.log(`Deauth event received for user ${userId}, account ${accountId}`);
   
   if (userId) {
-    admin.firestore().collection('users').where('zoomUserId', '==', userId).get()
-      .then(snapshot => {
-        snapshot.forEach(doc => {
-          doc.ref.update({ 
-            zoomLinked: false, 
-            zoomUserId: admin.firestore.FieldValue.delete(),
-            zoomAccessToken: admin.firestore.FieldValue.delete(),
-            zoomRefreshToken: admin.firestore.FieldValue.delete()
-          });
-        });
-      })
-      .catch(err => console.error('Failed to clean up user on deauth', err));
+    try {
+      const snapshot = await admin.firestore().collection('users').where('zoomUserId', '==', userId).get();
+      const promises: any[] = [];
+      snapshot.forEach(doc => {
+        promises.push(doc.ref.update({ 
+          zoomLinked: false, 
+          zoomUserId: admin.firestore.FieldValue.delete(),
+          zoomAccessToken: admin.firestore.FieldValue.delete(),
+          zoomRefreshToken: admin.firestore.FieldValue.delete()
+        }));
+      });
+      await Promise.all(promises);
+    } catch (err) {
+      console.error('Failed to clean up user on deauth', err);
+    }
   }
   
   return res.status(200).json({ status: 'ok' });
