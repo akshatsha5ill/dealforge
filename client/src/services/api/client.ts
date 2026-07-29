@@ -61,4 +61,16 @@ export const apiClient = {
     });
     return handleResponse<T>(response);
   },
+
+  createCheckout: async (plan: string): Promise<{ checkout_url: string }> => {
+    return apiClient.post<{ checkout_url: string }>('/billing/checkout', { plan });
+  },
+
+  getSubscription: async (): Promise<{ plan: string; status: string; currentPeriodEnd: string | null; customerId: string | null; subscriptionId: string | null }> => {
+    return apiClient.get('/billing/subscription');
+  },
+
+  cancelSubscription: async (): Promise<void> => {
+    await apiClient.post('/billing/cancel');
+  },
 };

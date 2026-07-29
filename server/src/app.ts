@@ -9,6 +9,7 @@ import zoomRoutes from './routes/zoom.js';
 import aiRoutes from './routes/ai.js';
 import emailRoutes from './routes/email.js';
 import trackingRoutes from './routes/tracking.js';
+import billingRoutes from './routes/billing.js';
 import { verifyAuth } from './middleware/auth.js';
 import requestId from './middleware/requestId.js';
 import sanitize from './middleware/sanitize.js';
@@ -117,6 +118,7 @@ app.use('/api/zoom', zoomRoutes);
 app.use('/api/tracking', trackingLimiter, trackingRoutes);
 app.use('/api/ai', verifyAuth, aiLimiter, aiRoutes);
 app.use('/api/email', verifyAuth, emailLimiter, emailRoutes);
+app.use('/api/billing', billingRoutes);
 
 app.get('/api', (req, res) => {
   res.status(200).json({ message: 'API is running', version: '1.0.0' });

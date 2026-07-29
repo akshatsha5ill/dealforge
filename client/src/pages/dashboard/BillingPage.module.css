@@ -1,0 +1,292 @@
+.billingContainer {
+  margin-bottom: 30px;
+}
+
+.billingTitle {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.billingSubtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.currentPlan {
+  padding: 28px;
+  margin-bottom: 24px;
+}
+
+.currentPlanHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.currentPlanName {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.statusBadge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+}
+
+.statusBadge.active {
+  background: var(--tertiary);
+  color: var(--bg-primary);
+  border-color: var(--tertiary);
+}
+
+.statusBadge.cancelled {
+  background: var(--text-muted);
+  color: var(--bg-primary);
+  border-color: var(--text-muted);
+}
+
+.statusBadge.past_due {
+  background: var(--primary);
+  color: var(--bg-primary);
+  border-color: var(--primary);
+}
+
+.statusBadge.trialing {
+  background: var(--secondary);
+  color: var(--bg-primary);
+  border-color: var(--secondary);
+}
+
+.planDetails {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.planPrice {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 32px;
+  color: var(--text-primary);
+}
+
+.planPeriod {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.planRenewal {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.plansSection {
+  margin-bottom: 24px;
+}
+
+.plansSectionTitle {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.plansGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.planCard {
+  padding: 24px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: background 0.2s var(--ease);
+}
+
+.planCard:hover {
+  background: var(--bg-tertiary);
+}
+
+.planCard.current {
+  border-color: var(--primary);
+  border-width: 2px;
+}
+
+.planCardHeader {
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.planCardName {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.planCardPrice {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--text-primary);
+}
+
+.planCardPeriod {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.planCardFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+  flex: 1;
+}
+
+.planCardFeature {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 6px 0;
+  border-bottom: 1px dotted var(--border-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.planCardFeature:last-child {
+  border-bottom: none;
+}
+
+.planCardButton {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  text-align: center;
+}
+
+.planCardButton:hover {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border-color: var(--text-primary);
+}
+
+.planCardButton.primary {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border-color: var(--text-primary);
+}
+
+.planCardButton.primary:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.planCardButton.danger {
+  background: transparent;
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.planCardButton.danger:hover {
+  background: var(--primary);
+  color: var(--bg-primary);
+}
+
+.planCardButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.currentLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+
+.cancelSection {
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.cancelSectionTitle {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cancelDescription {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.cancelButton {
+  padding: 10px 20px;
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s var(--ease);
+}
+
+.cancelButton:hover {
+  background: var(--primary);
+  color: var(--bg-primary);
+}
+
+.cancelButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .plansGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .planDetails {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

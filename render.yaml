@@ -34,6 +34,14 @@ services:
         sync: false
       - key: SENTRY_DSN
         sync: false
+      - key: DODO_PAYMENTS_API_KEY
+        sync: false
+      - key: DODO_PAYMENTS_WEBHOOK_KEY
+        sync: false
+      - key: DODO_PRO_PRODUCT_ID
+        sync: false
+      - key: DODO_ENTERPRISE_PRODUCT_ID
+        sync: false
 
   - type: static
     name: dealforge-client

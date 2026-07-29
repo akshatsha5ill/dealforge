@@ -39,6 +39,13 @@ export const config = {
     url: process.env.REDIS_URL,
   },
 
+  dodo: {
+    apiKey: process.env.DODO_PAYMENTS_API_KEY,
+    webhookKey: process.env.DODO_PAYMENTS_WEBHOOK_KEY,
+    proProductId: process.env.DODO_PRO_PRODUCT_ID,
+    enterpriseProductId: process.env.DODO_ENTERPRISE_PRODUCT_ID,
+  },
+
   isProd: process.env.NODE_ENV === 'production',
   isTest: process.env.NODE_ENV === 'test',
 };
