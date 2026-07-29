@@ -28,13 +28,13 @@
     "openai": "^6.48.0",
     "resend": "^6.17.2",
     "socket.io": "^4.8.3",
-    "stripe": "^22.3.2",
     "ws": "^8.16.0",
     "xss": "^1.0.15",
     "zod": "^3.22.4",
     "zod-express-middleware": "^1.4.0"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
     "@types/supertest": "^6.0.3",
     "@types/ws": "^8.5.10",
     "nock": "^14.0.16",

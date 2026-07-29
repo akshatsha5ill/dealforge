@@ -674,7 +674,7 @@ dealforge/
 |------|-------|
 | **13** | Email tracking (open/click via Tracking Inbox), tracking pixel + redirect links, engagement dashboard |
 | **14** | Analytics page (meeting frequency, pipeline velocity, email performance, lead score trends) |
-| **15** | Subscription/billing (Stripe Checkout integration), plan tiers, settings polish |
+| **15** | Subscription/billing (Dodo Payments integration — Stripe removed), plan tiers, settings polish |
 | **16** | End-to-end testing, bug fixes, Zoom Marketplace submission process, landing page |
 
 **Deliverable:** Full DealForge product with analytics, email tracking, billing, and a polished landing page. Submitted to Zoom Marketplace for review.
@@ -766,18 +766,8 @@ For the very first buildable version, we focus on **Phase 1 only**:
 ### Phase 4: Analytics & Launch
 - [x] Basic dashboard with charts
 - [x] Full analytics page with 6 charts (pipeline velocity, meeting frequency, lead stages, conversion funnel, email performance, lead score trends) (`client/src/pages/dashboard/AnalyticsPage.tsx`)
-- [x] Stripe billing integration (`server/src/routes/billing.ts`, `client/src/pages/dashboard/BillingPage.tsx`)
+- [ ] Billing integration — Stripe has been completely removed; Dodo Payments will be integrated as the replacement
 - [ ] Zoom Marketplace submission (blocked on real Zoom credentials)
-
-## Infrastructure & Configuration Issues
-
-### High Priority
-- [ ] **Server ESM/CJS mismatch** — `server/package.json` declares `"type": "module"` (ESM) but `server/tsconfig.json` compiles to `"module": "CommonJS"`. The compiled `dist/index.js` will fail at runtime. Fix: change tsconfig `module` to `"NodeNext"` or remove `"type": "module"` from package.json.
-- [ ] **Deployment configs run TypeScript source directly** — `railway.json` and `render.yaml` both use `startCommand: "node src/index.js"` which runs `.ts` files directly. Fix: use `tsx src/index.js` or point to `dist/index.js` after build.
-- [ ] **Docker workspace hoisting** — Both Dockerfiles copy individual workspace `package.json` files but rely on root-level `package-lock.json`. `npm ci` inside Docker may fail. Fix: copy root package files into Docker context or use multi-stage workspace-aware builds.
-
-### Low Priority
-- [ ] **Docker workspace hoisting** — Both Dockerfiles copy individual workspace `package.json` files but rely on root-level `package-lock.json`. `npm ci` inside Docker may fail. Fix: copy root package files into Docker context or use multi-stage workspace-aware builds.
 
 ## Notes
 - Tracking events and buffer service use in-memory storage (lost on server restart). Acceptable for development/small scale; would need Redis for production durability.

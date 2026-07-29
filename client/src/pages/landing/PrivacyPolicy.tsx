@@ -14,7 +14,7 @@ export default function PrivacyPolicy() {
       <p>If you uninstall the DealForge app from your Zoom account, Zoom sends us a Deauthorization request. However, because we do not store your data on our servers, to fully delete your data, you must clear your browser's local storage (IndexedDB) via the DealForge dashboard Settings or browser controls.</p>
       
       <h2 style={{ marginTop: '30px', fontSize: '24px' }}>4. Third-Party Services</h2>
-      <p>We use Firebase for authentication and basic account management, and Stripe for subscription billing. Only basic account information (name, email) is shared with these services.</p>
+      <p>We use Firebase for authentication and basic account management. Only basic account information (name, email) is shared with these services.</p>
     </div>
   );
 }

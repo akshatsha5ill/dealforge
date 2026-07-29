@@ -6,13 +6,6 @@ vi.mock('./services/firebase-admin.js', () => ({
   getFirebaseAuth: () => ({
     verifyIdToken: vi.fn().mockResolvedValue({ uid: 'test-user', email: 'test@example.com' }),
   }),
-  getFirebaseFirestore: () => ({
-    collection: () => ({
-      doc: () => ({
-        get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ plan: 'pro' }) }),
-      }),
-    }),
-  }),
 }));
 
 describe('Integration Tests', () => {
@@ -22,10 +15,4 @@ describe('Integration Tests', () => {
     expect(res.body.status).toBe('healthy');
   });
 
-  it('GET /api/billing/status works', async () => {
-    const res = await request(app)
-      .get('/api/billing/status')
-      .set('Authorization', 'Bearer mock-token');
-    expect(res.status).toBe(200);
-  });
 });

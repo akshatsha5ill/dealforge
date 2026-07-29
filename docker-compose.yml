@@ -1,6 +1,8 @@
 services:
   server:
-    build: ./server
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
     ports:
       - "3000:3000"
     env_file:
@@ -21,7 +23,9 @@ services:
           cpus: "1.0"
 
   client:
-    build: ./client
+    build:
+      context: .
+      dockerfile: ./client/Dockerfile
     ports:
       - "80:80"
     env_file:

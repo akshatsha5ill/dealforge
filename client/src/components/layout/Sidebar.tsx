@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Video, Users, Settings, BarChart3, Mail, GitBranch, CreditCard } from 'lucide-react';
+import { Home, Video, Users, Settings, BarChart3, Mail, GitBranch } from 'lucide-react';
 import './Sidebar.css';
 
 const navItems = [
@@ -9,8 +9,7 @@ const navItems = [
   { to: '/dashboard/pipeline', icon: GitBranch, label: 'Pipeline', num: '04' },
   { to: '/dashboard/emails', icon: Mail, label: 'Emails', num: '05' },
   { to: '/dashboard/analytics', icon: BarChart3, label: 'Analytics', num: '06' },
-  { to: '/dashboard/billing', icon: CreditCard, label: 'Billing', num: '07' },
-  { to: '/dashboard/settings', icon: Settings, label: 'Settings', num: '08' },
+  { to: '/dashboard/settings', icon: Settings, label: 'Settings', num: '07' },
 ];
 
 export default function Sidebar() {

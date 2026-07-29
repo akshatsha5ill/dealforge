@@ -13,28 +13,17 @@ vi.mock('./services/firebase-admin.js', () => ({
         set: vi.fn().mockResolvedValue({}),
         update: vi.fn().mockResolvedValue({}),
       }),
-      where: () => ({
-        get: vi.fn().mockResolvedValue({
-          forEach: vi.fn(),
-        }),
-      }),
     }),
   }),
 }));
 
 describe('E2E User Flow', () => {
-  it('allows a user to check auth, verify billing, and access ai routes', async () => {
+  it('allows a user to check auth and access ai routes', async () => {
     // 1. Health check
     const health = await request(app).get('/api/health');
     expect(health.status).toBe(200);
 
-    // 2. Billing status (authenticated)
-    const billing = await request(app)
-      .get('/api/billing/status')
-      .set('Authorization', 'Bearer e2e-token');
-    expect(billing.status).toBe(200);
-
-    // 3. Email draft route (authenticated)
+    // 2. Email draft route (authenticated)
     const emailDraft = await request(app)
       .post('/api/email/draft')
       .set('Authorization', 'Bearer e2e-token')

@@ -7,14 +7,6 @@ export const config = {
   port: process.env.PORT || 3000,
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
   
-  stripe: {
-    secretKey: process.env.STRIPE_SECRET_KEY,
-    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
-    starterPriceId: process.env.STRIPE_STARTER_PRICE_ID,
-    proPriceId: process.env.STRIPE_PRO_PRICE_ID,
-    enterprisePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID,
-  },
-  
   zoom: {
     clientId: process.env.ZOOM_CLIENT_ID,
     clientSecret: process.env.ZOOM_CLIENT_SECRET,
