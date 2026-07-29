@@ -117,3 +117,9 @@ Thumbs.db
 # Vite output
 dist
 build
+
+# Agent artifacts
+.agents/
+prompt_draft.md
+ORIGINAL_REQUEST.md
+PROJECT_CONTEXT.md

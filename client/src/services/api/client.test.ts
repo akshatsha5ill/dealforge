@@ -14,7 +14,7 @@ describe('apiClient', () => {
 
   beforeEach(() => {
     // Reset global fetch and firebase auth mock state before each test
-    global.fetch = vi.fn();
+    (globalThis as any).fetch = vi.fn();
     auth.currentUser = null;
   });
 
@@ -23,14 +23,14 @@ describe('apiClient', () => {
   });
 
   const mockFetchSuccess = (data: any) => {
-    (global.fetch as any).mockResolvedValueOnce({
+    (globalThis.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => data,
     });
   };
 
   const mockFetchError = (statusText: string, errorData: any) => {
-    (global.fetch as any).mockResolvedValueOnce({
+    (globalThis.fetch as any).mockResolvedValueOnce({
       ok: false,
       statusText,
       json: async () => errorData,
@@ -42,7 +42,7 @@ describe('apiClient', () => {
       mockFetchSuccess({ data: 'success' });
       await apiClient.get('/test');
 
-      expect(global.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
         headers: { 'Content-Type': 'application/json' },
       });
     });
@@ -57,7 +57,7 @@ describe('apiClient', () => {
 
       await apiClient.get('/test-auth');
 
-      expect(global.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test-auth`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test-auth`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${mockToken}`
@@ -76,7 +76,7 @@ describe('apiClient', () => {
 
       await apiClient.get('/test-auth-fail');
 
-      expect(global.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test-auth-fail`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test-auth-fail`, {
         headers: { 'Content-Type': 'application/json' },
       });
       expect(consoleSpy).toHaveBeenCalledWith('Failed to get auth token:', error);
@@ -92,7 +92,7 @@ describe('apiClient', () => {
       const result = await apiClient.get('/items');
 
       expect(result).toEqual(mockData);
-      expect(global.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items`, {
         headers: { 'Content-Type': 'application/json' },
       });
     });
@@ -105,7 +105,7 @@ describe('apiClient', () => {
       const result = await apiClient.post('/items', requestData);
 
       expect(result).toEqual(mockData);
-      expect(global.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData),
@@ -120,7 +120,7 @@ describe('apiClient', () => {
       const result = await apiClient.put('/items/1', requestData);
 
       expect(result).toEqual(mockData);
-      expect(global.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items/1`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items/1`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData),
@@ -135,7 +135,7 @@ describe('apiClient', () => {
       const result = await apiClient.patch('/items/1', requestData);
 
       expect(result).toEqual(mockData);
-      expect(global.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items/1`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items/1`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData),
@@ -149,7 +149,7 @@ describe('apiClient', () => {
       const result = await apiClient.delete('/items/1');
 
       expect(result).toEqual(mockData);
-      expect(global.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items/1`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items/1`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -165,7 +165,7 @@ describe('apiClient', () => {
 
     it('should fallback to statusText if JSON error parsing fails', async () => {
       // Mock fetch to simulate a response where parsing JSON fails
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      (globalThis.fetch as any).mockResolvedValueOnce({
         ok: false,
         statusText: 'Internal Server Error',
         json: async () => { throw new Error('Invalid JSON'); },

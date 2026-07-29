@@ -61,7 +61,7 @@ export const getStorageUsage = async (): Promise<StorageUsage | null> => {
     const estimate = await navigator.storage.estimate();
     const usage = estimate.usage ?? 0;
     const quota = estimate.quota ?? 0;
-    return { used: usage, quota: quota, percent: ((usage / quota) * 100).toFixed(1) };
+    return { used: usage, quota: quota, percent: quota > 0 ? ((usage / quota) * 100).toFixed(1) : '0' };
   }
   return null;
 };
@@ -81,7 +81,7 @@ export const importFromJSONFile = async (file: File): Promise<void> => {
         const data = JSON.parse(e.target?.result as string);
         await importData(data);
         resolve();
-      } catch (err) {
+      } catch (err: any) {
         reject(err);
       }
     };
