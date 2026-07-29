@@ -11,7 +11,9 @@ export const config = {
     clientId: process.env.ZOOM_CLIENT_ID,
     clientSecret: process.env.ZOOM_CLIENT_SECRET,
     redirectUri: process.env.ZOOM_REDIRECT_URI || `${process.env.CLIENT_URL || 'http://localhost:3000'}/api/zoom/oauth/callback`,
-    webhookSecretToken: process.env.ZOOM_WEBHOOK_SECRET_TOKEN,
+    get webhookSecretToken() {
+      return process.env.ZOOM_WEBHOOK_SECRET_TOKEN;
+    },
     sdkKey: process.env.ZOOM_SDK_KEY,
     sdkSecret: process.env.ZOOM_SDK_SECRET,
   },

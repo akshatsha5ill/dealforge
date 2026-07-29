@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../services/local-db/db';
-import { Mail, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail, RefreshCw, CheckCircle } from 'lucide-react';
 
 export interface EmailProviderConfig {
   type: 'gmail' | 'outlook' | 'none';
@@ -36,7 +36,7 @@ export function EmailIntegrationSettings() {
       } else {
         const stored = await db.settings.get('email_provider');
         if (stored && stored.value) {
-          setProvider(stored.value);
+          setProvider(stored.value as EmailProviderConfig);
         }
       }
       setLoading(false);

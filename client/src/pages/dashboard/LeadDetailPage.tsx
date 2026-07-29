@@ -1,7 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { db } from '../../services/local-db/db';
-import { Lead, Deal, EmailCampaign, Meeting } from '../../types';
+import { Lead } from '../../types';
 import { ArrowLeft, Clock, Mail, CheckCircle, Video, Briefcase } from 'lucide-react';
 
 interface TimelineEvent {

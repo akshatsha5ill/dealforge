@@ -140,7 +140,7 @@ export default function PipelinePage() {
       stage: form.stage,
       value: parseFloat(form.value) || 0,
       probability: parseInt(form.probability) || 0,
-      expectedClose: form.expectedClose || null,
+      expectedClose: form.expectedClose || '',
       notes: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

@@ -16,7 +16,7 @@ Active development. Zoom Marketplace AI meeting intelligence SaaS.
 
 ## Completed Work
 - Phase 1: MVP & Meeting Intelligence (complete)
-- Phase 2: Lead Management & Pipeline (complete)
+- Phase 2: Lead Management & Pipeline (complete, includes LeadDetailPage)
 - Phase 3: Email Outreach (complete)
 - Phase 4: Analytics (charts complete, billing replaced by Dodo Payments plan)
 

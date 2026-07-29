@@ -41,7 +41,7 @@ class DripCampaignWorker {
         const meetingForLead = leadMeetings.find(m => transcripts.some(t => t.meetingId === m.id));
         if (meetingForLead) {
           const transcript = transcripts.find(t => t.meetingId === meetingForLead.id);
-          transcriptContext = transcript?.content || transcript?.text || transcript?.fullText || '';
+          transcriptContext = transcript?.fullText || '';
         }
       } catch (err) {
         console.error("Failed to load transcript for drip worker", err);
@@ -58,10 +58,10 @@ class DripCampaignWorker {
         subject = step.subject;
         body = step.body.replace(/\{lead_name\}/gi, lead.name).replace(/\{company\}/gi, lead.company || '');
       } else {
-        const res = await generateEmailDraft(transcriptContext, lead, aiKey, aiModel);
+        const res = await generateEmailDraft(transcriptContext, lead as unknown as Record<string, string | number | boolean>, aiKey, aiModel);
         const data = res; // generateEmailDraft now returns parsed JSON because of apiClient
-        subject = data?.draft?.subject || data?.subject || `${campaign.name} - Follow up`;
-        body = data?.draft?.body || data?.draft?.content || data?.body || data?.content || `Hi ${lead.name},\n\nJust following up on our recent meeting. Let me know if you have any questions!\n\nBest,`;
+        subject = data?.subject || `${campaign.name} - Follow up`;
+        body = data?.body || `Hi ${lead.name},\n\nJust following up on our recent meeting. Let me know if you have any questions!\n\nBest,`;
       }
       
       const stepCampaignId = crypto.randomUUID();
@@ -74,6 +74,7 @@ class DripCampaignWorker {
         body,
         status: 'sent',
         type: 'drip_step',
+        sequence: [],
         sentAt: new Date(now).toISOString(),
         scheduledAt: new Date(now).toISOString(),
       });

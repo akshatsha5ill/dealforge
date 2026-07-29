@@ -13,16 +13,18 @@ export const disconnectSocket = () => {
 };
 
 export const useWebSocket = () => {
-  const socketRef = useRef(null);
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     const setupSocket = async () => {
       if (!sharedSocket) {
-        let token = undefined;
+        let token: string | undefined = undefined;
         try {
           const auth = (await import('../services/firebase/config')).auth;
           token = await auth.currentUser?.getIdToken();
-        } catch (e) {}
+        } catch (e) {
+          console.error('Failed to get auth token for WebSocket:', e);
+        }
 
         sharedSocket = io(window.location.origin, {
           auth: { token },
@@ -41,13 +43,13 @@ export const useWebSocket = () => {
     };
   }, []);
 
-  const emit = useCallback((event, data) => {
+  const emit = useCallback((event: string, data?: any) => {
     if (socketRef.current) {
       socketRef.current.emit(event, data);
     }
   }, []);
 
-  const subscribe = useCallback((event, callback) => {
+  const subscribe = useCallback((event: string, callback: (...args: any[]) => void) => {
     const socket = socketRef.current;
     if (socket) {
       socket.on(event, callback);

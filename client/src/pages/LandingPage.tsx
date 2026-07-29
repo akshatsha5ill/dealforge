@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { ArrowRight, Activity, Calendar, Zap, Mail, Shield, ChevronDown } from 'lucide-react';
+import { Calendar, Zap, Mail, ChevronDown } from 'lucide-react';
 import { useStore } from '../store';
 import { loginWithGoogle, loginWithEmail, registerWithEmail } from '../services/firebase/auth';
 import GoogleIcon from '../components/GoogleIcon';

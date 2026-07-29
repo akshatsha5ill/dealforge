@@ -15,27 +15,27 @@ export const loginWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Google sign in failed", error);
     throw error;
   }
 };
 
-export const loginWithEmail = async (email, password) => {
+export const loginWithEmail = async (email: string, password: string) => {
   try {
     const result = await signInWithEmailAndPassword(auth, email, password);
     return result.user;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Email sign in failed", error);
     throw error;
   }
 };
 
-export const registerWithEmail = async (email, password) => {
+export const registerWithEmail = async (email: string, password: string) => {
   try {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     return result.user;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Registration failed", error);
     throw error;
   }
@@ -44,7 +44,7 @@ export const registerWithEmail = async (email, password) => {
 export const logoutUser = async () => {
   try {
     await signOut(auth);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Sign out failed", error);
     throw error;
   }
@@ -55,11 +55,7 @@ export const initAuthListener = () => {
   onAuthStateChanged(auth, (user) => {
     const { setUser, setAuthReady } = useStore.getState();
     if (user) {
-      setUser({
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-      });
+      setUser(user);
     } else {
       setUser(null);
     }

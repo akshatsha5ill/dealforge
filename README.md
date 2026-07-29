@@ -70,8 +70,8 @@ graph TB
         WH["📡 Zoom Webhook Handler"]
         AI["🤖 AI Proxy (BYOK)"]
         EM["📧 Email Service"]
-        BUF["⏳ Temp Buffer<br/>(In-memory, 24h TTL)"]
-        TRK["📊 Tracking Inbox<br/>(Opens/Clicks, pull-based)"]
+        BUF["⏳ Temp Buffer<br/>(Redis + In-memory fallback, 24h TTL)"]
+        TRK["📊 Tracking Inbox<br/>(Redis, Opens/Clicks, pull-based)"]
     end
 
     subgraph "Cloud (Firebase)"
@@ -140,7 +140,7 @@ sequenceDiagram
         ZP->>S: Audio stream / transcription events
         S->>S: Process transcription
         S->>ZP: Live transcript (display only)
-        S->>S: Buffer in memory (24h TTL) ⏳
+        S->>S: Buffer in Redis (24h TTL) ⏳
         Note over S: Data held temporarily until<br/>dashboard connects & pulls it
     end
 
@@ -171,7 +171,7 @@ sequenceDiagram
 ```
 
 > [!IMPORTANT]
-> **Privacy guarantee (updated):** Sensitive data (transcripts, leads, emails, analytics) is **never permanently stored on the server**. The server uses a temporary in-memory buffer (24h TTL) only when the dashboard is offline. Once the dashboard pulls the data, the server discards it.
+> **Privacy guarantee (updated):** Sensitive data (transcripts, leads, emails, analytics) is **never permanently stored on the server**. The server uses an in-memory temporary buffer (with optional Redis for production durability, 24h TTL) only when the dashboard is offline. Once the dashboard pulls the data, the server discards it.
 
 > [!WARNING]
 > **Trade-offs to understand:**
@@ -191,11 +191,11 @@ The original blueprint was vague about HOW we get real-time transcription. There
 | **B. Zoom RTMS (Real-Time Media Streams)** | Receive raw audio from Zoom, transcribe with Whisper/Deepgram | 🟡 Medium | 🟢 High |
 | **C. Browser Audio Capture** | Capture system audio via browser API, send to speech-to-text | 🔴 High | 🟡 Medium |
 
-### Recommended: Approach A for MVP, migrate to B later
+### Implemented: Approach B (Zoom RTMS)
 
-**MVP (Phase 1):** Use **Zoom's built-in closed captions / live transcription** feature. The Zoom Apps SDK provides access to meeting context and transcription events. This is the fastest path to a working product.
+**Current implementation:** The app uses **Zoom RTMS (Real-Time Media Streams)** via WebSocket (`wss://rtms2.zoom.us/rtms/websocket`) for real-time transcription. The server authenticates with Zoom's RTMS API, receives audio/transcription streams, and relays them to connected clients via Socket.IO. This provides higher quality transcription with speaker diarization support.
 
-**Post-MVP:** Upgrade to **Zoom RTMS** for higher quality, speaker diarization, and custom vocabulary. RTMS gives us raw audio streams that we can process with Whisper or Deepgram for superior accuracy.
+**Note:** The original plan recommended starting with Approach A (Zoom's built-in captions) for simplicity, but RTMS was implemented directly for its superior accuracy and real-time capabilities.
 
 ---
 
@@ -207,26 +207,44 @@ Since you're coming from a non-technical background, here's what each piece does
 
 | Technology | What It Does | Why This One |
 |-----------|-------------|--------------|
-| **React 18** | Builds the UI (buttons, pages, panels) | Industry standard, huge community, Zoom SDK supports it |
+| **React 19.2.7** | Builds the UI (buttons, pages, panels) | Industry standard, huge community, Zoom SDK supports it |
+| **TypeScript** | Type safety | Catch errors early, great autocomplete |
 | **Vite** | Development tooling (fast builds, hot reload) | Fastest dev experience, modern standard |
+| **Vitest** | Unit testing framework | Fast testing, Vite compatible |
+| **oxlint** | Linter | Extremely fast linting |
 | **React Router** | Navigation between pages | Simple, works great with SPAs |
+| **Firebase SDK** | Client-side auth (Google OAuth, email/password) | Pairs with Firebase Auth backend |
+| **@zoom/appssdk** | Connects to Zoom's in-meeting panel runtime | Required for the Zoom in-meeting panel |
 | **Dexie.js** | Local database in the browser (IndexedDB wrapper) | Makes IndexedDB easy to use, supports queries |
 | **Zustand** | State management (sharing data between components) | Tiny, simple, no boilerplate — perfect for vibe coding |
-| **Vanilla CSS** | Styling | Full control, no dependencies |
+| **Socket.io Client** | Real-time WebSocket connection to server | Live transcription and suggestions |
+| **CSS Modules & Vanilla CSS** | Styling | Component-scoped styling and global tokens |
 | **Lucide React** | Icons | Beautiful, consistent icon set |
 | **Recharts** | Charts and analytics | Easy React-based charting |
+| **Sentry (@sentry/react)** | Error monitoring and performance tracking | Catches runtime errors in production |
+| **DOMPurify** | Sanitizes HTML content | Prevents XSS from AI-generated or user-supplied HTML |
+| **React Virtuoso** | Virtualized scrolling for long lists | Handles large meeting/lead lists without lag |
 
 ### Backend (The Engine Behind the Scenes)
 
 | Technology | What It Does | Why This One |
 |-----------|-------------|--------------|
 | **Node.js + Express** | Server that handles API calls, webhooks, AI requests | Simple, JavaScript everywhere |
-| **Zoom Apps SDK** | Connects to Zoom's platform | Required for Zoom Marketplace apps |
 | **Firebase Admin SDK** | Server-side Firebase auth verification | Secure token verification |
 | **OpenAI SDK** | Calls GPT models for AI features | BYOK — uses user's key |
 | **Anthropic SDK** | Calls Claude models for AI features | BYOK — uses user's key |
+| **Google GenAI SDK** | Calls Gemini models for AI features | BYOK — uses user's key, additional model option |
 | **Resend SDK** | Sends emails programmatically | Modern email API, great DX |
 | **Socket.io** | Real-time communication (WebSocket) | Pushes live data to dashboard |
+| **ws (WebSocket)** | Low-level WebSocket support | Used alongside Socket.io for Zoom RTMS connections |
+| **Redis (ioredis)** | Optional production buffer and tracking event store | Falls back to in-memory if unavailable; 24h TTL meeting buffer |
+| **Zod** | Request body/query validation | Type-safe input validation at API boundaries |
+| **Helmet** | Sets security HTTP headers | Protects against common web vulnerabilities |
+| **express-rate-limit** | Throttles abusive requests | Prevents API abuse and brute-force attacks |
+| **compression** | HTTP response compression | Reduces payload size and bandwidth usage |
+| **xss** | Sanitizes HTML input | Prevents cross-site scripting via request body sanitization |
+| **zod-express-middleware** | Zod validation middleware for Express | Type-safe request body/query/params validation at route boundaries |
+| **Sentry (@sentry/node)** | Server-side error monitoring | Tracks production errors and performance |
 
 ### Infrastructure
 
@@ -234,8 +252,9 @@ Since you're coming from a non-technical background, here's what each piece does
 |-----------|-------------|--------------|
 | **Firebase Auth** | User login/signup (Google, email/password) | Easy setup, handles OAuth |
 | **Firebase Firestore** | Cloud database (account data only) | Only stores non-sensitive data |
+| **Redis** | Optional in-memory data store for buffer and tracking | Production durability for meeting data buffer (in-memory is primary) |
 | **ngrok** | HTTPS tunnel for local development | Required by Zoom Apps SDK |
-| **Railway** | Hosting the backend + frontend | Easy deployment, supports WebSockets well |
+| **Render** | Hosting the backend + frontend | Easy deployment, supports WebSockets well |
 
 ---
 
@@ -287,6 +306,9 @@ sequenceDiagram
 ```
 
 The API key travels over HTTPS per-request and is never stored on the server. The encrypted blob in Firestore can only be decrypted by the user's browser.
+
+> [!NOTE]
+> **BYOK implementation detail:** The explicit `/api/ai/analyze` and `/api/ai/score` endpoints follow the BYOK pattern (client sends the key per-request). However, the automatic **Transcript Analysis Pipeline** (`server/src/services/transcript-analysis-pipeline.ts`) reads API keys from server-side environment variables (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`). This means the real-time in-meeting suggestions use server-configured keys, while post-meeting analysis on the dashboard uses the user's own keys.
 
 ### 🔧 Critical Fix #4: Email Tracking Needs Server Persistence
 
@@ -386,13 +408,6 @@ erDiagram
         datetime lastActivity
     }
 
-    DATA_EXPORTS {
-        string id PK
-        string type
-        datetime exportedAt
-        number recordCount
-    }
-
     MEETINGS ||--|| TRANSCRIPTS : has
     MEETINGS ||--|| AI_ANALYSIS : has
     MEETINGS ||--o{ LEADS : generates
@@ -467,7 +482,7 @@ erDiagram
 | Email Editor | Rich text editor for reviewing/editing drafts | — |
 | Send via Resend | Send emails through Resend API | — |
 | Gmail/Outlook Integration | Send from user's own email account | — |
-| Drip Campaigns | Multi-step automated email sequences | — |
+| Drip Campaigns | Multi-step automated email sequences (runs client-side via `setInterval`; only active while dashboard is open) | — |
 | Open/Click Tracking | Track email engagement (via Tracking Inbox) | — |
 
 #### Settings & Configuration
@@ -477,106 +492,110 @@ erDiagram
 | AI Model Selection | Choose which model to use (GPT-4o, Claude Sonnet, etc.) |
 | Email Account Connection | Connect Gmail/Outlook |
 | Pipeline Customization | Custom deal stages |
-| Subscription Management | View plan, billing, upgrade |
+| Subscription Management | *Pending — Dodo Payments integration planned* |
 | 🔧 Data Export / Backup | Export all local data as JSON/CSV, import backups |
 | 🔧 Storage Health | Monitor IndexedDB usage, storage warnings |
+| 🔧 Auto Backup | Automatic weekly JSON backup via `useAutoBackup` hook |
+| 🔧 Cookie Consent | GDPR-compliant cookie consent banner |
 
 ---
 
 ## Project Structure
 
 ```
-dealforge/
+/ (Project Root)
 ├── client/                          # Frontend (React + Vite)
 │   ├── public/
-│   │   └── assets/                  # Static assets, logos, favicon
+│   │   ├── favicon.svg
+│   │   └── icons.svg
 │   ├── src/
-│   │   ├── main.jsx                 # App entry point
-│   │   ├── App.jsx                  # Root component + routing
+│   │   ├── main.tsx                 # App entry point
+│   │   ├── App.tsx                  # Root component + routing
+│   │   ├── routes.tsx               # App routing definitions
 │   │   ├── index.css                # Global styles + design tokens
 │   │   │
 │   │   ├── components/              # Reusable UI components
-│   │   │   ├── common/              # Button, Input, Modal, Card, Badge, Tooltip
-│   │   │   ├── layout/              # Sidebar, Header, PageLayout, ZoomPanelLayout
-│   │   │   └── charts/              # SentimentChart, PipelineChart, EmailMetrics
+│   │   │   ├── common/              # ErrorBoundary, RichTextEditor, Toast, ConfirmDialog, Spinner, CookieConsent
+│   │   │   │   └── index.ts         # Barrel exports (ErrorBoundary, RichTextEditor, Toast)
+│   │   │   ├── email/               # ComposeEmailCard, EmailCampaignCard, DripCampaignCard
+│   │   │   ├── layout/              # Sidebar, Header, DashboardLayout, ZoomPanelLayout, ProtectedRoute
+│   │   │   ├── pipeline/            # PipelineCard, PipelineColumn, NewDealModal
+│   │   │   └── settings/            # EmailIntegrationSettings, PipelineSettings
 │   │   │
 │   │   ├── pages/                   # Page-level components
-│   │   │   ├── zoom-panel/          # In-meeting panel views (STATELESS)
-│   │   │   │   ├── TranscriptionView.jsx
-│   │   │   │   ├── SuggestionsView.jsx
-│   │   │   │   └── NotesView.jsx
-│   │   │   ├── dashboard/           # Web dashboard pages
-│   │   │   │   ├── MeetingsPage.jsx
-│   │   │   │   ├── MeetingDetailPage.jsx
-│   │   │   │   ├── LeadsPage.jsx
-│   │   │   │   ├── PipelinePage.jsx
-│   │   │   │   ├── EmailPage.jsx
-│   │   │   │   ├── AnalyticsPage.jsx
-│   │   │   │   └── SettingsPage.jsx
-│   │   │   ├── auth/                # Login, Signup, Onboarding
-│   │   │   └── landing/             # Marketing / landing page
+│   │   │   ├── auth/                # LoginPage
+│   │   │   ├── dashboard/           # DashboardPage, MeetingsPage, MeetingDetailPage, LeadsPage, LeadDetailPage, PipelinePage, AnalyticsPage, SettingsPage, EmailPage
+│   │   │   ├── landing/             # PrivacyPolicy, TermsOfService, Support
+│   │   │   ├── LandingPage.tsx      # Marketing / landing page (root)
+│   │   │   └── zoom-panel/          # TranscriptionView, SuggestionsView, NotesView (STATELESS)
 │   │   │
 │   │   ├── services/                # Business logic & data layer
-│   │   │   ├── local-db/            # Dexie.js IndexedDB setup
-│   │   │   │   ├── db.js            # Database schema & initialization
-│   │   │   │   ├── meetings.js      # Meeting CRUD operations
-│   │   │   │   ├── leads.js         # Lead CRUD operations
-│   │   │   │   ├── deals.js         # Deal CRUD operations
-│   │   │   │   ├── emails.js        # Email CRUD operations
-│   │   │   │   └── backup.js        # 🔧 Export / import / auto-backup
-│   │   │   ├── firebase/            # Firebase config & helpers
-│   │   │   │   ├── config.js        # Firebase initialization
-│   │   │   │   └── auth.js          # Auth helpers
-│   │   │   ├── ai/                  # AI service layer
-│   │   │   │   └── ai-service.js    # Calls backend AI proxy
-│   │   │   ├── zoom/                # Zoom SDK integration
-│   │   │   │   └── zoom-sdk.js      # Zoom Apps SDK helpers
-│   │   │   ├── crypto/              # 🔧 Client-side encryption
-│   │   │   │   └── key-vault.js     # PBKDF2 encrypt/decrypt for API keys
-│   │   │   └── api/                 # Backend API client
-│   │   │       └── client.js        # Axios/fetch wrapper
+│   │   │   ├── ai/                  # ai-service.ts (AI proxy layer)
+│   │   │   ├── api/                 # client.ts (Backend API client)
+│   │   │   ├── firebase/            # auth.ts, config.ts (Firebase config & helpers)
+│   │   │   ├── local-db/            # db.ts, meetings.ts, transcripts.ts, leads.ts, deals.ts, emails.ts, tracking.ts, ai-analysis.ts, backup.ts
+│   │   │   ├── zoom/                # zoom-sdk.ts (Zoom SDK integration)
+│   │   │   ├── lead-automation.ts   # Auto-lead creation from meeting participants
+│   │   │   ├── drip-worker.ts       # Drip campaign automation
+│   │   │   ├── analytics.ts         # Analytics service
+│   │   │   └── cookie-consent.ts    # Cookie consent service
 │   │   │
-│   │   ├── hooks/                   # Custom React hooks
-│   │   │   ├── useLocalDB.js        # Hook for IndexedDB operations
-│   │   │   ├── useWebSocket.js      # Hook for real-time data
-│   │   │   └── useStorageHealth.js  # 🔧 Monitor IndexedDB quota
-│   │   ├── store/                   # Zustand stores
-│   │   │   ├── authStore.js
-│   │   │   ├── meetingStore.js
-│   │   │   └── uiStore.js
-│   │   └── utils/                   # Helper functions
+│   │   ├── hooks/                   # useAutoBackup, useCookieConsent, useWebSocket
+│   │   ├── store/                   # Zustand stores (authSlice, keySlice, uiSlice)
+│   │   ├── types/                   # TypeScript interfaces
+│   │   ├── utils/                   # analytics.ts, stages.ts
+│   │   ├── crypto/                  # key-vault.ts (Client-side encryption utilities)
+│   │   └── test/                    # Test utilities
 │   │
-│   ├── vite.config.js
+│   ├── vite.config.ts
 │   └── package.json
 │
 ├── server/                          # Backend (Node.js + Express)
 │   ├── src/
-│   │   ├── index.js                 # Server entry point
-│   │   ├── routes/
-│   │   │   ├── auth.js              # Auth routes
-│   │   │   ├── zoom.js              # Zoom OAuth + webhooks
-│   │   │   ├── ai.js                # AI proxy routes
-│   │   │   ├── email.js             # Email sending routes
-│   │   │   └── tracking.js          # 🔧 Email tracking inbox routes
-│   │   ├── services/
-│   │   │   ├── zoom-service.js      # Zoom API interactions
-│   │   │   ├── ai-service.js        # OpenAI + Anthropic calls
-│   │   │   ├── email-service.js     # Resend + Gmail/Outlook
-│   │   │   ├── firebase-admin.js    # Firebase Admin setup
-│   │   │   └── buffer-service.js    # 🔧 Temp meeting data buffer (24h TTL)
-│   │   ├── middleware/
-│   │   │   ├── auth.js              # JWT verification
-│   │   │   └── rateLimit.js         # Rate limiting
-│   │   └── utils/
-│   │       └── encryption.js        # Server-side utilities
+│   │   ├── index.ts                 # Server entry point (Socket.io, graceful shutdown)
+│   │   ├── app.ts                   # Express app setup (routes, middleware, security)
+│   │   ├── config.ts                # Environment configuration
+│   │   ├── routes/                  # auth.ts, zoom.ts, ai.ts, email.ts, tracking.ts
+│   │   ├── services/                # ai-providers.ts, ai-service.ts, buffer-service.ts, email-service.ts, firebase-admin.ts, transcript-analysis-pipeline.ts, zoom-rtms.ts
+│   │   ├── middleware/              # auth.ts, errorHandler.ts, requestId.ts, sanitize.ts, validateRequest.ts
+│   │   ├── types/                   # TypeScript interfaces
+│   │   └── utils/                   # logger.ts, prompts.ts, sanitize.ts, crypto.ts
 │   │
 │   ├── package.json
-│   └── .env.example
+│   └── tsconfig.json
 │
-├── .gitignore
-├── README.md
-└── package.json                     # Root package.json (workspace)
+├── .github/                         # CI/CD and GitHub Actions
+│   └── workflows/
+│       ├── ci.yml                   # CI pipeline (lint, test, build)
+│       └── deploy.yml               # Deployment pipeline (Render)
+│
+├── docker-compose.yml               # Docker Compose configuration
+├── render.yaml                      # Render deployment configuration
+├── package.json                     # Root package.json (npm workspaces monorepo root)
+└── README.md
 ```
+
+---
+
+## Infrastructure & Documentation
+
+### Environment Variables
+- `client/.env` - Frontend environment variables (Vite config, API URL, Firebase config).
+- `server/.env` - Backend environment variables (Port, Zoom credentials, Resend API key, Firebase Admin credentials).
+
+### Build & Deployment
+The app uses an npm workspaces monorepo structure.
+- **Local Dev:** Run `npm run dev` from the root to start both `client` and `server` concurrently.
+- **Render Deployment:** `render.yaml` defines a web service (`dealforge-server`) running Node.js and a static site (`dealforge-client`) served by the platform.
+
+### Docker Setup
+- `docker-compose.yml` configures `server` and `client` services.
+- `server/Dockerfile` is a multi-stage Node.js build copying root workspaces and starting via `node server/dist/index.js`.
+- `client/Dockerfile` builds the Vite app and serves it via an `nginx:alpine` web server with custom `nginx.conf`.
+
+### CI/CD Pipeline
+- **`.github/workflows/ci.yml`**: Runs on pull requests to `main`. It tests code quality by running `npm ci`, linting (`npm run lint`), and unit tests (`npm run test`).
+- **`.github/workflows/deploy.yml`**: Runs on pushes to `main`. Contains the deployment pipeline triggering Render deploys.
 
 ---
 
@@ -726,7 +745,7 @@ For the very first buildable version, we focus on **Phase 1 only**:
 
 ### Phase 1: MVP & Meeting Intelligence
 - [x] Project scaffolding (monorepo, workspaces, build config)
-- [x] Design system (CSS tokens, glassmorphism, dark theme)
+- [x] Design system (CSS tokens, Warm Parchment paper aesthetic)
 - [x] Firebase Auth (login/signup/Google OAuth)
 - [x] Web Dashboard shell (sidebar, header, routing)
 - [x] ProtectedRoute with auth loading state

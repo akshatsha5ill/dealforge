@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { readConsent } from './cookie-consent';
 
 const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_ID as string | undefined;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Video, Users, Mail, BarChart3, ArrowRight, Zap, Clock, Activity, Timer } from 'lucide-react';
+import { TrendingUp, Video, Users, Mail, BarChart3, ArrowRight, Zap, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import { db } from '../../services/local-db/db';
 import { Meeting, Lead, Deal, EmailCampaign } from '../../types';
@@ -75,8 +75,8 @@ export default function AnalyticsPage() {
 
   const funnelSteps = [
     { label: 'Leads', count: totalLeads, pct: totalLeads > 0 ? 100 : 0 },
-    { label: 'Deals', count: dealCount, pct: totalLeads > 0 ? ((dealCount / totalLeads) * 100).toFixed(1) : 0 },
-    { label: 'Won', count: wonDeals, pct: totalLeads > 0 ? ((wonDeals / totalLeads) * 100).toFixed(1) : 0 },
+    { label: 'Deals', count: dealCount, pct: totalLeads > 0 ? Number(((dealCount / totalLeads) * 100).toFixed(1)) : 0 },
+    { label: 'Won', count: wonDeals, pct: totalLeads > 0 ? Number(((wonDeals / totalLeads) * 100).toFixed(1)) : 0 },
   ];
 
   return (
@@ -157,7 +157,7 @@ export default function AnalyticsPage() {
               <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
               <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} />
               <YAxis tick={axisTick} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`$${v.toLocaleString()}`, 'Value']} cursor={{ fill: 'var(--bg-tertiary)' }} />
+              <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`$${(v || 0).toLocaleString()}`, 'Value']} cursor={{ fill: 'var(--bg-tertiary)' }} />
               <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                 {pipelineData.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -187,7 +187,7 @@ export default function AnalyticsPage() {
                   outerRadius={80}
                   paddingAngle={3}
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                 >
                   {leadStageData.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />

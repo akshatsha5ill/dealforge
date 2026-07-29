@@ -5,7 +5,7 @@ import { initAuthListener } from './services/firebase/auth';
 import { leadAutomationService } from './services/lead-automation';
 import { dripWorker } from './services/drip-worker';
 import { db } from './services/local-db/db';
-import { runAutoBackup, verifyPermission } from './services/local-db/backup';
+import { runAutoBackup } from './services/local-db/backup';
 import { initAnalytics } from './services/analytics';
 import CookieConsent from './components/common/CookieConsent';
 import ToastContainer, { toast } from './components/common/Toast';

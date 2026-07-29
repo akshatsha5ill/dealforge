@@ -18,16 +18,16 @@ class LeadAutomationService {
     await db.ai_analysis.put({
       id: `analysis_${meetingId}`,
       meetingId: meetingId,
-      summary: result?.summary || result.analysis?.summary || '',
-      actionItems: result?.actionItems || result.analysis?.actionItems || [],
-      sentiment: result?.sentiment || result.analysis?.sentiment || { positive: 0, neutral: 0, negative: 0, overall: 'neutral' },
+      summary: result?.summary || '',
+      actionItems: result?.actionItems?.map((item: any) => item.task || String(item)) || [],
+      sentiment: { positive: 0, neutral: 0, negative: 0, overall: result?.sentiment?.overall || 'neutral' },
       leadScore: 0,
       emailDraft: null,
       modelUsed: model,
       analyzedAt: new Date().toISOString(),
     });
     
-    const leads = result?.leads || result.analysis?.leads;
+    const leads = (result as any)?.leads || [];
     if (!leads || leads.length === 0) return;
 
     const leadRecords = leads.map((lead: any, index: number) => ({
@@ -99,7 +99,7 @@ class LeadAutomationService {
       
       await db.leads.add(newLead);
       console.log(`Auto-created lead from participant: ${newLead.name}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to auto-create lead from participant:', err);
     }
   };

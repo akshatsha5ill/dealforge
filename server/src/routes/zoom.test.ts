@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import express from 'express';
 import http from 'http';
+import '../config.js';
 import { errorHandler } from '../middleware/errorHandler.js';
 
 describe('Zoom Routes', () => {
   let server: http.Server | null;
+  const originalWebhookSecret = process.env.ZOOM_WEBHOOK_SECRET_TOKEN;
 
   afterEach(async () => {
     if (server) {
@@ -12,6 +14,11 @@ describe('Zoom Routes', () => {
       server = null;
     }
     vi.clearAllMocks();
+    if (originalWebhookSecret !== undefined) {
+      process.env.ZOOM_WEBHOOK_SECRET_TOKEN = originalWebhookSecret;
+    } else {
+      delete process.env.ZOOM_WEBHOOK_SECRET_TOKEN;
+    }
   });
 
   it('should return 400 if no code is provided', async () => {
@@ -38,10 +45,10 @@ describe('Zoom Routes', () => {
   }, 10000);
 
   it('should return 500 if webhook secret is not configured', async () => {
-    delete process.env.ZOOM_WEBHOOK_SECRET_TOKEN;
     const app = express();
     app.use(express.json());
     const { default: zoomRoutes } = await import('./zoom.js');
+    delete process.env.ZOOM_WEBHOOK_SECRET_TOKEN;
     app.use('/api/zoom', zoomRoutes);
     app.use(errorHandler);
     server = http.createServer(app);

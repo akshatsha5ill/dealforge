@@ -1,7 +1,7 @@
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export interface DateItem {
-  createdAt?: string;
+  createdAt?: string | number;
   startTime?: string;
   sentAt?: string;
   scheduledAt?: string;

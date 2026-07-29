@@ -74,9 +74,9 @@ describe('drip-worker logic', () => {
     const subject = `${campaign.name} - Step ${campaign.currentStep + 1}`;
     const body = `Hi ${lead?.name},\n\nJust following up on our recent meeting. Let me know if you have any questions!\n\nBest,`;
     
-    await sendEmail(lead!.email, subject, body);
+    await sendEmail(lead!.email, subject, body, 'test-api-key', 'campaign-1');
     
-    expect(sendEmail).toHaveBeenCalledWith('john@example.com', 'Test Campaign - Step 1', expect.stringContaining('Hi John'));
+    expect(sendEmail).toHaveBeenCalledWith('john@example.com', 'Test Campaign - Step 1', expect.stringContaining('Hi John'), 'test-api-key', 'campaign-1');
     
     await db.drip_campaigns.update(campaign.id, { 
       status: 'active',

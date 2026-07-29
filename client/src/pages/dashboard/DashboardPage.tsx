@@ -85,7 +85,7 @@ export default function DashboardPage() {
               <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
               <Tooltip
                 contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '13px' }}
-                formatter={(v) => [`$${v.toLocaleString()}`, 'Value']}
+                formatter={(v) => [`$${(v || 0).toLocaleString()}`, 'Value']}
               />
               <Line type="monotone" dataKey="value" stroke="var(--success)" strokeWidth={2} dot={{ fill: 'var(--success)', r: 4 }} />
             </LineChart>

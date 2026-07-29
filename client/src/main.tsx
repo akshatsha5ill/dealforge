@@ -11,7 +11,12 @@ if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
   });
 }
 
-createRoot(document.getElementById('root')).render(
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error('Failed to find root element');
+}
+
+createRoot(rootElement).render(
   <StrictMode>
     <App />
   </StrictMode>,

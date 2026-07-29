@@ -4,10 +4,10 @@
 **DealForge** is an AI-powered meeting intelligence and CRM integration for Zoom. It leverages Zoom's Real-Time Messaging System (RTMS) and Webhooks to transcribe meetings, extract actionable insights, and automate deal pipeline management for sales teams.
 
 ### Core Technologies:
-- **Frontend:** React, Vite, TailwindCSS (Zoom App / Meeting Panel)
-- **Backend:** Node.js, Express (TypeScript)
-- **Database/Persistence:** Firebase Firestore (User data & OAuth tokens), Redis (Session buffering & real-time state)
-- **AI/Transcription:** Integration with specialized AI models for real-time natural language processing.
+- **Frontend:** React 19, Vite, TypeScript, Dexie.js (IndexedDB), Zustand (state management), Socket.io Client
+- **Backend:** Node.js, Express, TypeScript, Socket.io
+- **Database/Persistence:** Firebase Firestore (User data & OAuth tokens), IndexedDB via Dexie.js (Local-first sensitive data), In-memory buffer with optional Redis (Session buffering, 24h TTL)
+- **AI/Transcription:** Zoom RTMS for real-time transcription, OpenAI/Anthropic/Google GenAI for analysis (BYOK)
 - **Email Outreach:** Resend API for sending post-meeting follow-ups.
 
 ---
@@ -17,21 +17,47 @@
 ### 2.1 System Architecture
 ```mermaid
 graph TD
-    Client[Zoom App Client / React] -->|HTTPS/WSS| Server[Node.js Express Server]
-    Server -->|OAuth/Webhooks| ZoomAPI[Zoom API & RTMS]
-    Server -->|Read/Write| Firebase[(Firebase Firestore)]
-    Server -->|Cache/Buffer| Redis[(Redis)]
-    Server -->|Generate Content| AI[AI Processing Service]
-    Server -->|Send Emails| EmailService[Resend API]
+    subgraph "Zoom Client (Embedded Browser)"
+        ZP[Zoom In-Meeting Panel]
+    end
+
+    subgraph "User's Browser"
+        WD[Web Dashboard]
+        IDB[(IndexedDB - Dexie.js)]
+    end
+
+    subgraph "Backend Server (Stateless Relay)"
+        Server[Node.js Express Server]
+        Buffer[In-Memory Buffer + Optional Redis]
+        Tracking[Tracking Inbox]
+    end
+
+    subgraph "External Services"
+        Firebase[(Firebase Auth + Firestore)]
+        ZoomAPI[Zoom API & RTMS]
+        AI[AI Providers - OpenAI/Anthropic/Gemini]
+        EmailService[Resend API]
+    end
+
+    ZP -->|WebSocket| Server
+    WD -->|REST + WebSocket| Server
+    WD <--> IDB
+    Server <--> Firebase
+    Server <--> ZoomAPI
+    Server <--> AI
+    Server <--> EmailService
+    Server --> Buffer
+    Server --> Tracking
 ```
 
 ### 2.2 Zoom Webhook & Real-Time Data Flow
 1. **Meeting Starts:** Zoom sends a `meeting.started` webhook to DealForge's `/api/zoom/webhook` endpoint.
 2. **Signature Verification:** The server verifies the `x-zm-signature` using the `ZOOM_WEBHOOK_SECRET_TOKEN`.
 3. **RTMS Connection:** The server connects to the meeting's Real-Time Messaging System (RTMS) to stream audio/transcriptions.
-4. **Processing:** Transcripts are buffered in Redis, then sent to the AI processing pipeline periodically to extract action items, leads, and CRM data.
+4. **Processing:** Transcripts are buffered in-memory (with optional Redis for production durability, 24h TTL), then sent to the AI processing pipeline periodically (every 45 seconds) to extract action items, leads, and CRM data.
 5. **Client Broadcast:** Processed insights are broadcasted to the connected Zoom App clients via WebSockets (`socket.io`).
-6. **Meeting Ends:** On receiving the `meeting.ended` webhook, the RTMS connection is closed, data is flushed to persistent storage, and the cache is cleared.
+6. **Data Storage:** Sensitive data (transcripts, leads, emails, analytics) is stored locally in IndexedDB via Dexie.js. The server acts as a stateless relay.
+7. **Meeting Ends:** On receiving the `meeting.ended` webhook, the RTMS connection is closed, and the buffer is cleared after dashboard pulls data.
 
 ---
 
@@ -48,8 +74,9 @@ graph TD
 
 ### 3.3 Data Privacy & Encryption
 - **Data in Transit:** All communications between the Zoom Client, Zoom API, and DealForge servers are encrypted using TLS 1.2 or higher (HTTPS/WSS).
-- **Data at Rest:** Data stored in Firebase Firestore is encrypted at rest by Google Cloud.
-- **Data Retention:** Transcripts and meeting notes are buffered in Redis temporarily during active meetings and are cleared shortly after the `meeting.ended` event is processed. Only aggregated AI insights are persistently stored in the user's CRM pipeline.
+- **Data at Rest:** Data stored in Firebase Firestore is encrypted at rest by Google Cloud. Sensitive data (transcripts, leads, emails) is stored locally in IndexedDB, not on the server.
+- **Data Retention:** Transcripts and meeting notes are buffered in-memory temporarily during active meetings (with optional Redis for production durability, 24h TTL). Once the dashboard pulls the data, the server discards it. Sensitive data is never permanently stored on the server.
+- **BYOK (Bring Your Own Key):** API keys for AI providers are encrypted client-side using PBKDF2 and stored in Firestore. The server never sees plaintext keys.
 
 ---
 

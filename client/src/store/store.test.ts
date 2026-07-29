@@ -11,7 +11,7 @@ describe('Zustand Store', () => {
       geminiKey: '',
       resendKey: '',
       error: null,
-      loading: false,
+      isLoading: false,
     });
   });
 

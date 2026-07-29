@@ -86,7 +86,7 @@ export default function LeadsPage() {
     }
   };
 
-  const getScoreColor = (score) => {
+  const getScoreColor = (score: number) => {
     if (score >= 80) return 'var(--success)';
     if (score >= 50) return 'var(--warning)';
     return 'var(--danger)';
@@ -116,7 +116,7 @@ export default function LeadsPage() {
         model
       );
 
-      const scoreResult = res.data.score;
+      const scoreResult = res;
       const updatedLead = { ...lead, score: scoreResult.score, reasoning: scoreResult.reasoning };
       
       await db.leads.put(updatedLead);

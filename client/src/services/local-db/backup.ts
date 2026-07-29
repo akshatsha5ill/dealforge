@@ -59,7 +59,9 @@ export interface StorageUsage {
 export const getStorageUsage = async (): Promise<StorageUsage | null> => {
   if (navigator.storage && navigator.storage.estimate) {
     const estimate = await navigator.storage.estimate();
-    return { used: estimate.usage, quota: estimate.quota, percent: ((estimate.usage / estimate.quota) * 100).toFixed(1) };
+    const usage = estimate.usage ?? 0;
+    const quota = estimate.quota ?? 0;
+    return { used: usage, quota: quota, percent: ((usage / quota) * 100).toFixed(1) };
   }
   return null;
 };

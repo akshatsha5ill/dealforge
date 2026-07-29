@@ -25,7 +25,7 @@ Used during live Zoom meetings via a side-panel for real-time transcription and 
 - Full creative freedom for the visual design; no legacy brand assets are binding.
 
 ## Brand Commitments
-The visual language must strictly adhere to the `DESIGN.md` brief: "Risograph Web System," featuring Archivo, heavy blocky layers, printed-shudder physics on hover, and fluorescent spot ink accents (pink, blue, yellow) multiplying over a warm paper ground.
+The visual language must strictly adhere to the `DESIGN.md` brief: "The Industrial Journal," featuring Fraunces and Newsreader serif typography, warm parchment backgrounds, oxblood accents, structural 1px rules, and a tactile paper-grain aesthetic.
 
 ## Evidence on Hand
 Codebase evidence indicates a functional dashboard and Zoom panel structure. The visual design is governed entirely by the updated `DESIGN.md`.

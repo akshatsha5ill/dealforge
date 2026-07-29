@@ -18,6 +18,7 @@ export default function MeetingDetailPage() {
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
+    if (!id) return;
     const fetchData = async () => {
       try {
         const [meetingData, transcriptData, analysisData] = await Promise.all([
@@ -25,8 +26,8 @@ export default function MeetingDetailPage() {
           db.transcripts.where('meetingId').equals(id).first(),
           db.ai_analysis.where('meetingId').equals(id).first(),
         ]);
-        setMeeting(meetingData);
-        setTranscript(transcriptData);
+        setMeeting(meetingData || null);
+        setTranscript(transcriptData || null);
         setAnalysis(analysisData?.summary ? analysisData : null);
       } catch (err) {
         console.error('Failed to load meeting:', err);
@@ -38,6 +39,7 @@ export default function MeetingDetailPage() {
   }, [id]);
 
   const handleAnalyze = async () => {
+    if (!id) return;
     setLoading(true);
     setError('');
     try {
@@ -51,17 +53,29 @@ export default function MeetingDetailPage() {
       const model = openAiKey ? 'openai' : 'anthropic';
       const result = await analyzeMeeting(transcriptText, id, apiKey, model);
 
-      const analysisRecord = {
+      const actionItems = result.actionItems ? result.actionItems.map((item: any) => typeof item === 'string' ? item : item.task) : [];
+      const sentimentScore = result.sentiment?.score ?? 0;
+      const analysisRecord: Analysis = {
         id: `analysis_${id}`,
         meetingId: id,
-        summary: result.analysis.summary,
+        summary: result.summary,
+        actionItems,
+        sentiment: {
+          positive: sentimentScore > 0 ? sentimentScore : 0,
+          neutral: sentimentScore === 0 ? 1 : 0,
+          negative: sentimentScore < 0 ? Math.abs(sentimentScore) : 0,
+          overall: result.sentiment?.overall || 'neutral',
+        },
+        leadScore: 50,
+        emailDraft: null,
+        modelUsed: model,
         analyzedAt: new Date().toISOString(),
       };
       await db.ai_analysis.put(analysisRecord);
       setAnalysis(analysisRecord);
 
       // Auto Lead Creation & Scoring (Abstracted)
-      const createdCount = await leadsDB.createLeadsFromAnalysis(id, result.analysis.leads);
+      const createdCount = await leadsDB.createLeadsFromAnalysis(id, (result as any).leads || []);
       if (createdCount > 0) {
         console.log(`Generated ${createdCount} leads from meeting.`);
       }
@@ -94,7 +108,7 @@ export default function MeetingDetailPage() {
     );
   }
 
-  const formatDate = (dateStr) => {
+  const formatDate = (dateStr?: string) => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };

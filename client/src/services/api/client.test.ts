@@ -22,15 +22,15 @@ describe('apiClient', () => {
     vi.restoreAllMocks();
   });
 
-  const mockFetchSuccess = (data) => {
-    global.fetch.mockResolvedValueOnce({
+  const mockFetchSuccess = (data: any) => {
+    (global.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => data,
     });
   };
 
-  const mockFetchError = (statusText, errorData) => {
-    global.fetch.mockResolvedValueOnce({
+  const mockFetchError = (statusText: string, errorData: any) => {
+    (global.fetch as any).mockResolvedValueOnce({
       ok: false,
       statusText,
       json: async () => errorData,
@@ -165,7 +165,7 @@ describe('apiClient', () => {
 
     it('should fallback to statusText if JSON error parsing fails', async () => {
       // Mock fetch to simulate a response where parsing JSON fails
-      global.fetch.mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: false,
         statusText: 'Internal Server Error',
         json: async () => { throw new Error('Invalid JSON'); },
