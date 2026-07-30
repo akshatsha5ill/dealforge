@@ -72,7 +72,8 @@ router.post('/verify', verifyAuth, validateRequest({ body: verifySchema }), asyn
       await userRef.set({
         plan,
         status: 'active',
-        subscriptionId: session.payment_id || null,
+        paymentId: session.payment_id || null,
+        subscriptionId: null,
         customerId: null,
         currentPeriodEnd: null,
         updatedAt: new Date().toISOString(),
@@ -237,7 +238,10 @@ router.post('/cancel', verifyAuth, async (req: AuthRequest, res: Response, next:
     const subscriptionId = data.subscriptionId;
 
     if (!subscriptionId) {
-      return next(new AppError('No active subscription found', 404));
+      await doc.ref.set({ status: 'cancelled', updatedAt: new Date().toISOString() }, { merge: true });
+      log.info('Subscription marked cancelled locally (no subscription ID from webhook yet)', { userId });
+      res.status(200).json({ status: 'ok' });
+      return;
     }
 
     const dodo = getDodoClient();
