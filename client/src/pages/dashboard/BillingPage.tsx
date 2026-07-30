@@ -57,12 +57,25 @@ export default function BillingPage() {
     }
 
     setVerifyingPayment(true);
+    const pendingPlan = localStorage.getItem('pending_plan') || 'pro';
 
     let attempts = 0;
     const maxAttempts = 10;
+    let verified = false;
 
     const poll = setInterval(async () => {
       attempts++;
+
+      if (!verified) {
+        try {
+          await apiClient.verifyCheckout(sessionId, pendingPlan);
+          verified = true;
+          localStorage.removeItem('pending_plan');
+        } catch {
+          // verify will return pending status on failure, continue polling
+        }
+      }
+
       const data = await fetchSubscription();
 
       if (data && data.plan !== 'free') {
@@ -100,6 +113,7 @@ export default function BillingPage() {
     try {
       const response = await apiClient.post<{ checkout_url: string }>('/billing/checkout', { plan });
       if (response.checkout_url) {
+        localStorage.setItem('pending_plan', plan);
         window.location.href = response.checkout_url;
       }
     } catch (err) {

@@ -56,28 +56,25 @@ router.post('/checkout', verifyAuth, validateRequest({ body: checkoutSchema }), 
   }
 });
 
-const verifySchema = z.object({ session_id: z.string().min(1) });
+const verifySchema = z.object({ session_id: z.string().min(1), plan: z.enum(['pro', 'enterprise']) });
 
 router.post('/verify', verifyAuth, validateRequest({ body: verifySchema }), async (req: AuthRequest, res: Response, next: express.NextFunction): Promise<unknown> => {
-  const { session_id } = req.body;
+  const { session_id, plan } = req.body;
   const userId = req.user!.uid;
 
   try {
     const dodo = getDodoClient();
     const session = await dodo.checkoutSessions.retrieve(session_id);
 
-    if (session.payment.status === 'succeeded') {
-      const metadata = session.metadata || {};
-      const plan = (metadata.plan as string) || 'pro';
+    if (session.payment_status === 'succeeded') {
       const userRef = getFirebaseFirestore().collection('users').doc(userId).collection('subscription').doc('current');
 
       await userRef.set({
         plan,
         status: 'active',
-        currentPeriodEnd: session.subscription?.next_billing_date || null,
-        customerId: session.customer?.customer_id || null,
-        subscriptionId: session.subscription?.subscription_id || null,
-        productId: session.product_id || null,
+        subscriptionId: session.payment_id || null,
+        customerId: null,
+        currentPeriodEnd: null,
         updatedAt: new Date().toISOString(),
       }, { merge: true });
 

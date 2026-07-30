@@ -73,4 +73,8 @@ export const apiClient = {
   cancelSubscription: async (): Promise<void> => {
     await apiClient.post('/billing/cancel');
   },
+
+  verifyCheckout: async (sessionId: string, plan: string): Promise<Record<string, unknown>> => {
+    return apiClient.post('/billing/verify', { session_id: sessionId, plan });
+  },
 };
