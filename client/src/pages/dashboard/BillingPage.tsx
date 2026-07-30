@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { CreditCard, Check, Zap, Crown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { CreditCard, Check, Zap, Crown, RefreshCw } from 'lucide-react';
 import { apiClient } from '../../services/api/client';
 import { PLAN_CONFIGS, SubscriptionPlan } from '../../types/billing';
 import { toast } from '../../components/common/Toast';
@@ -18,26 +18,80 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchSubscription = async () => {
+    try {
+      const data = await apiClient.get<Subscription>('/billing/subscription');
+      setSubscription(data);
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch subscription:', err);
+      return null;
+    }
+  };
+
+  const refreshSubscription = async () => {
+    setRefreshing(true);
+    try {
+      const data = await fetchSubscription();
+      if (data && data.plan !== 'free') {
+        toast.success('Subscription status updated!');
+      } else {
+        toast.info('No active subscription found.');
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchSubscription = async () => {
-      try {
-        const data = await apiClient.get<Subscription>('/billing/subscription');
-        setSubscription(data);
-      } catch (err) {
-        console.error('Failed to fetch subscription:', err);
-        setSubscription({
-          plan: 'free',
-          status: 'active',
-          currentPeriodEnd: null,
-          customerId: null,
-          subscriptionId: null,
-        });
-      } finally {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+
+    if (!sessionId) {
+      fetchSubscription().finally(() => setLoading(false));
+      return;
+    }
+
+    setVerifyingPayment(true);
+
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    const poll = setInterval(async () => {
+      attempts++;
+      const data = await fetchSubscription();
+
+      if (data && data.plan !== 'free') {
+        clearInterval(poll);
+        pollingRef.current = null;
+        setVerifyingPayment(false);
         setLoading(false);
+        toast.success('Payment verified! Your subscription is now active.');
+        window.history.replaceState({}, '', '/dashboard/billing');
+        return;
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(poll);
+        pollingRef.current = null;
+        setVerifyingPayment(false);
+        setLoading(false);
+        toast.info('Payment is still being processed. Please check back later.');
+        window.history.replaceState({}, '', '/dashboard/billing');
+      }
+    }, 3000);
+
+    pollingRef.current = poll;
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
       }
     };
-    fetchSubscription();
   }, []);
 
   const handleCheckout = async (plan: SubscriptionPlan) => {
@@ -87,12 +141,30 @@ export default function BillingPage() {
         <p className={styles.billingSubtitle}>Manage your subscription and plan details.</p>
       </div>
 
+      {verifyingPayment && (
+        <div className={styles.verifyingBanner}>
+          <span className={styles.verifyingSpinner} />
+          Verifying your payment... This may take a moment.
+        </div>
+      )}
+
       <div className={`ds-panel ${styles.currentPlan}`}>
         <div className={styles.currentPlanHeader}>
           <span className={styles.currentPlanName}>Current Plan</span>
-          <span className={`${styles.statusBadge} ${styles[subscription?.status || 'active']}`}>
-            {subscription?.status || 'active'}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              className={styles.refreshButton}
+              onClick={refreshSubscription}
+              disabled={refreshing || verifyingPayment}
+              title="Refresh subscription status"
+            >
+              <RefreshCw size={14} className={refreshing ? styles.spinning : ''} />
+              {refreshing ? 'Refreshing...' : 'Refresh Status'}
+            </button>
+            <span className={`${styles.statusBadge} ${styles[subscription?.status || 'active']}`}>
+              {subscription?.status || 'active'}
+            </span>
+          </div>
         </div>
         <div className={styles.planDetails}>
           <div>

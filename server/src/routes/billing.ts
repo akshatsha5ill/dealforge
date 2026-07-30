@@ -56,6 +56,43 @@ router.post('/checkout', verifyAuth, validateRequest({ body: checkoutSchema }), 
   }
 });
 
+const verifySchema = z.object({ session_id: z.string().min(1) });
+
+router.post('/verify', verifyAuth, validateRequest({ body: verifySchema }), async (req: AuthRequest, res: Response, next: express.NextFunction): Promise<unknown> => {
+  const { session_id } = req.body;
+  const userId = req.user!.uid;
+
+  try {
+    const dodo = getDodoClient();
+    const session = await dodo.checkoutSessions.retrieve(session_id);
+
+    if (session.payment.status === 'succeeded') {
+      const metadata = session.metadata || {};
+      const plan = (metadata.plan as string) || 'pro';
+      const userRef = getFirebaseFirestore().collection('users').doc(userId).collection('subscription').doc('current');
+
+      await userRef.set({
+        plan,
+        status: 'active',
+        currentPeriodEnd: session.subscription?.next_billing_date || null,
+        customerId: session.customer?.customer_id || null,
+        subscriptionId: session.subscription?.subscription_id || null,
+        productId: session.product_id || null,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+
+      log.info('Payment verified and subscription updated', { userId, plan, sessionId: session_id });
+
+      return res.status(200).json({ plan, status: 'active' });
+    }
+
+    return res.status(200).json({ status: 'pending', plan: 'free' });
+  } catch (err) {
+    log.error('Verify session failed', { error: err, userId, sessionId: session_id });
+    return res.status(200).json({ status: 'pending', plan: 'free' });
+  }
+});
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isSubscriptionData(data: any): data is { payload_type: 'Subscription'; subscription_id: string; status: string; metadata: Record<string, unknown>; customer: { customer_id: string } | null; next_billing_date: string | null; product_id: string } {
   return data?.payload_type === 'Subscription';
@@ -153,7 +190,7 @@ router.post('/webhook', async (req: Request, res: Response, next: express.NextFu
 
     return res.status(200).json({ status: 'ok' });
   } catch (err) {
-    log.error('Webhook verification failed', { error: err });
+    log.error('Webhook verification failed', { error: (err as Error).message, stack: (err as Error).stack });
     return next(new AppError('Webhook verification failed', 401));
   }
 });

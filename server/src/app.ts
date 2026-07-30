@@ -63,6 +63,7 @@ app.use(compression());
 
 app.use(express.json({ limit: '100kb' }));
 app.use(sanitize);
+app.use('/api/billing', billingRoutes);
 app.use('/api', apiLimiter);
 
 const authLimiter = rateLimit({
@@ -118,7 +119,6 @@ app.use('/api/zoom', zoomRoutes);
 app.use('/api/tracking', trackingLimiter, trackingRoutes);
 app.use('/api/ai', verifyAuth, aiLimiter, aiRoutes);
 app.use('/api/email', verifyAuth, emailLimiter, emailRoutes);
-app.use('/api/billing', billingRoutes);
 
 app.get('/api', (req, res) => {
   res.status(200).json({ message: 'API is running', version: '1.0.0' });
