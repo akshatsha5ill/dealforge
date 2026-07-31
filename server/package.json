@@ -17,6 +17,7 @@
     "@anthropic-ai/sdk": "^0.112.5",
     "@google/genai": "^0.2.0",
     "@sentry/node": "^10.68.0",
+    "@types/compression": "^1.8.1",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
     "dodopayments": "^2.43.0",
@@ -35,7 +36,6 @@
     "zod-express-middleware": "^1.4.0"
   },
   "devDependencies": {
-    "@types/compression": "^1.8.1",
     "@types/supertest": "^6.0.3",
     "@types/ws": "^8.5.10",
     "nock": "^14.0.16",
