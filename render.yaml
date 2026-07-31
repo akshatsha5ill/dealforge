@@ -26,6 +26,12 @@ services:
         sync: false
       - key: ZOOM_WEBHOOK_SECRET_TOKEN
         sync: false
+      - key: ZOOM_SDK_KEY
+        sync: false
+      - key: ZOOM_SDK_SECRET
+        sync: false
+      - key: ZOOM_VERIFY_TOKEN
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM

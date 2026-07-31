@@ -28,7 +28,7 @@
 |---|------|-------|-------------|--------|
 | 1 | Component and Hook Typings (R1) | `ErrorBoundary.tsx`, `useWebSocket.ts`, `main.tsx`, `MeetingDetailPage.tsx`, `AnalyticsPage.tsx`, `ProtectedRoute.tsx`, `EmailIntegrationSettings.tsx`, `DashboardPage.tsx`, `LeadsPage.tsx`, `PipelinePage.tsx` | none | DONE |
 | 2 | Service and Worker Typings (R2) | `key-vault.ts`, `drip-worker.ts`, `analytics.ts` | none | DONE |
-| 3 | Test Typings & Project Build Validation (R3) | `client.test.ts`, `drip-worker.test.ts`, `store.test.ts`, `tsconfig.json`, `package.json` | M1, M2 | IN_PROGRESS |
+| 3 | Test Typings & Project Build Validation (R3) | `client.test.ts`, `drip-worker.test.ts`, `store.test.ts`, `tsconfig.json`, `package.json` | M1, M2 | DONE |
 
 ## Interface Contracts
 ### Client Components ↔ Types (`client/src/types/index.ts`)

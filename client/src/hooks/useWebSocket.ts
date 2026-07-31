@@ -26,7 +26,8 @@ export const useWebSocket = () => {
           console.error('Failed to get auth token for WebSocket:', e);
         }
 
-        sharedSocket = io(window.location.origin, {
+        const serverUrl = import.meta.env.VITE_API_URL || window.location.origin;
+        sharedSocket = io(serverUrl, {
           auth: { token },
           transports: ['websocket', 'polling'],
           reconnection: true,

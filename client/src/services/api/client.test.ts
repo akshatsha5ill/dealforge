@@ -9,11 +9,11 @@ vi.mock('../firebase/config', () => ({
   },
 }));
 
-describe('apiClient', () => {
-  const MOCK_BASE_URL = '/api';
+// Determine the expected base URL based on env (matches client.ts logic)
+const BASE_URL = (import.meta.env.VITE_API_URL || '') + '/api';
 
+describe('apiClient', () => {
   beforeEach(() => {
-    // Reset global fetch and firebase auth mock state before each test
     (globalThis as any).fetch = vi.fn();
     auth.currentUser = null;
   });
@@ -42,7 +42,7 @@ describe('apiClient', () => {
       mockFetchSuccess({ data: 'success' });
       await apiClient.get('/test');
 
-      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${BASE_URL}/test`, {
         headers: { 'Content-Type': 'application/json' },
       });
     });
@@ -57,7 +57,7 @@ describe('apiClient', () => {
 
       await apiClient.get('/test-auth');
 
-      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test-auth`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${BASE_URL}/test-auth`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${mockToken}`
@@ -76,7 +76,7 @@ describe('apiClient', () => {
 
       await apiClient.get('/test-auth-fail');
 
-      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/test-auth-fail`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${BASE_URL}/test-auth-fail`, {
         headers: { 'Content-Type': 'application/json' },
       });
       expect(consoleSpy).toHaveBeenCalledWith('Failed to get auth token:', error);
@@ -92,7 +92,7 @@ describe('apiClient', () => {
       const result = await apiClient.get('/items');
 
       expect(result).toEqual(mockData);
-      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${BASE_URL}/items`, {
         headers: { 'Content-Type': 'application/json' },
       });
     });
@@ -105,7 +105,7 @@ describe('apiClient', () => {
       const result = await apiClient.post('/items', requestData);
 
       expect(result).toEqual(mockData);
-      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${BASE_URL}/items`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData),
@@ -120,7 +120,7 @@ describe('apiClient', () => {
       const result = await apiClient.put('/items/1', requestData);
 
       expect(result).toEqual(mockData);
-      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items/1`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${BASE_URL}/items/1`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData),
@@ -135,7 +135,7 @@ describe('apiClient', () => {
       const result = await apiClient.patch('/items/1', requestData);
 
       expect(result).toEqual(mockData);
-      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items/1`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${BASE_URL}/items/1`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData),
@@ -149,7 +149,7 @@ describe('apiClient', () => {
       const result = await apiClient.delete('/items/1');
 
       expect(result).toEqual(mockData);
-      expect(globalThis.fetch).toHaveBeenCalledWith(`${MOCK_BASE_URL}/items/1`, {
+      expect(globalThis.fetch).toHaveBeenCalledWith(`${BASE_URL}/items/1`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });

@@ -63,7 +63,6 @@ app.use(compression());
 
 app.use(express.json({ limit: '100kb' }));
 app.use(sanitize);
-app.use('/api/billing', billingRoutes);
 app.use('/api', apiLimiter);
 
 const authLimiter = rateLimit({
@@ -98,6 +97,14 @@ const emailLimiter = rateLimit({
   message: { error: 'Email rate limit exceeded. Please wait before sending another email.' }
 });
 
+const billingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many billing requests, please try again later.' }
+});
+
 const requestLogger = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -116,6 +123,7 @@ app.use(requestLogger);
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/zoom', zoomRoutes);
+app.use('/api/billing', verifyAuth, billingLimiter, billingRoutes);
 app.use('/api/tracking', trackingLimiter, trackingRoutes);
 app.use('/api/ai', verifyAuth, aiLimiter, aiRoutes);
 app.use('/api/email', verifyAuth, emailLimiter, emailRoutes);

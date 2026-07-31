@@ -492,7 +492,7 @@ erDiagram
 | AI Model Selection | Choose which model to use (GPT-4o, Claude Sonnet, etc.) |
 | Email Account Connection | Connect Gmail/Outlook |
 | Pipeline Customization | Custom deal stages |
-| Subscription Management | *Pending — Dodo Payments integration planned* |
+| Subscription Management | Dodo Payments integration (checkout, verify, webhooks, plan management) |
 | 🔧 Data Export / Backup | Export all local data as JSON/CSV, import backups |
 | 🔧 Storage Health | Monitor IndexedDB usage, storage warnings |
 | 🔧 Auto Backup | Automatic weekly JSON backup via `useAutoBackup` hook |
@@ -515,6 +515,7 @@ erDiagram
 │   │   ├── index.css                # Global styles + design tokens
 │   │   │
 │   │   ├── components/              # Reusable UI components
+│   │   │   ├── GoogleIcon.tsx       # Google OAuth icon component
 │   │   │   ├── common/              # ErrorBoundary, RichTextEditor, Toast, ConfirmDialog, Spinner, CookieConsent
 │   │   │   │   └── index.ts         # Barrel exports (ErrorBoundary, RichTextEditor, Toast)
 │   │   │   ├── email/               # ComposeEmailCard, EmailCampaignCard, DripCampaignCard
@@ -524,9 +525,10 @@ erDiagram
 │   │   │
 │   │   ├── pages/                   # Page-level components
 │   │   │   ├── auth/                # LoginPage
-│   │   │   ├── dashboard/           # DashboardPage, MeetingsPage, MeetingDetailPage, LeadsPage, LeadDetailPage, PipelinePage, AnalyticsPage, SettingsPage, EmailPage
+│   │   │   ├── dashboard/           # DashboardPage, MeetingsPage, MeetingDetailPage, LeadsPage, LeadDetailPage, PipelinePage, AnalyticsPage, SettingsPage, EmailPage, BillingPage
 │   │   │   ├── landing/             # PrivacyPolicy, TermsOfService, Support
 │   │   │   ├── LandingPage.tsx      # Marketing / landing page (root)
+│   │   │   ├── LandingPage.css      # Landing page styles
 │   │   │   └── zoom-panel/          # TranscriptionView, SuggestionsView, NotesView (STATELESS)
 │   │   │
 │   │   ├── services/                # Business logic & data layer
@@ -542,7 +544,7 @@ erDiagram
 │   │   │
 │   │   ├── hooks/                   # useAutoBackup, useCookieConsent, useWebSocket
 │   │   ├── store/                   # Zustand stores (authSlice, keySlice, uiSlice)
-│   │   ├── types/                   # TypeScript interfaces
+│   │   ├── types/                   # TypeScript interfaces (index.ts, billing.ts)
 │   │   ├── utils/                   # analytics.ts, stages.ts
 │   │   ├── crypto/                  # key-vault.ts (Client-side encryption utilities)
 │   │   └── test/                    # Test utilities
@@ -555,11 +557,13 @@ erDiagram
 │   │   ├── index.ts                 # Server entry point (Socket.io, graceful shutdown)
 │   │   ├── app.ts                   # Express app setup (routes, middleware, security)
 │   │   ├── config.ts                # Environment configuration
-│   │   ├── routes/                  # auth.ts, zoom.ts, ai.ts, email.ts, tracking.ts
+│   │   ├── routes/                  # auth.ts, zoom.ts, ai.ts, email.ts, tracking.ts, billing.ts
 │   │   ├── services/                # ai-providers.ts, ai-service.ts, buffer-service.ts, email-service.ts, firebase-admin.ts, transcript-analysis-pipeline.ts, zoom-rtms.ts
 │   │   ├── middleware/              # auth.ts, errorHandler.ts, requestId.ts, sanitize.ts, validateRequest.ts
 │   │   ├── types/                   # TypeScript interfaces
-│   │   └── utils/                   # logger.ts, prompts.ts, sanitize.ts, crypto.ts
+│   │   ├── utils/                   # logger.ts, prompts.ts, sanitize.ts, crypto.ts
+│   │   ├── swagger.json             # OpenAPI 3.0.3 API documentation
+│   │   └── *.test.ts                # Co-located tests (config, routes, services, middleware, utils, integration, e2e)
 │   │
 │   ├── package.json
 │   └── tsconfig.json
@@ -581,7 +585,11 @@ erDiagram
 
 ### Environment Variables
 - `client/.env` - Frontend environment variables (Vite config, API URL, Firebase config).
-- `server/.env` - Backend environment variables (Port, Zoom credentials, Resend API key, Firebase Admin credentials).
+- `server/.env` - Backend environment variables (Port, Zoom credentials, Resend API key, Firebase Admin credentials, Dodo Payments credentials).
+
+### API Documentation
+- **Swagger/OpenAPI**: The server exposes an OpenAPI 3.0.3 spec at `/api/docs` (`server/src/swagger.json`).
+- Covers all endpoints: auth, zoom, AI analysis, email, tracking, and billing.
 
 ### Build & Deployment
 The app uses an npm workspaces monorepo structure.
@@ -785,7 +793,7 @@ For the very first buildable version, we focus on **Phase 1 only**:
 ### Phase 4: Analytics & Launch
 - [x] Basic dashboard with charts
 - [x] Full analytics page with 6 charts (pipeline velocity, meeting frequency, lead stages, conversion funnel, email performance, lead score trends) (`client/src/pages/dashboard/AnalyticsPage.tsx`)
-- [ ] Billing integration — Stripe has been completely removed; Dodo Payments will be integrated as the replacement
+- [x] Billing integration — Dodo Payments (checkout, verify, webhooks, subscription management) (`server/src/routes/billing.ts`, `client/src/pages/dashboard/BillingPage.tsx`)
 - [ ] Zoom Marketplace submission (blocked on real Zoom credentials)
 
 ## Notes

@@ -55,6 +55,8 @@ if (config.isProd) {
     ['CLIENT_URL', config.clientUrl],
     ['ZOOM_CLIENT_ID', config.zoom.clientId],
     ['ZOOM_CLIENT_SECRET', config.zoom.clientSecret],
+    ['ZOOM_WEBHOOK_SECRET_TOKEN', config.zoom.webhookSecretToken],
+    ['SESSION_SECRET', process.env.SESSION_SECRET],
     ['RESEND_API_KEY', config.email.resendApiKey],
     ['FIREBASE_PROJECT_ID', config.firebase.projectId],
     ['FIREBASE_CLIENT_EMAIL', config.firebase.clientEmail],
