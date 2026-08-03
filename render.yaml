@@ -1,0 +1,51 @@
+services:
+  # ------------------------------------------------------------
+  # Backend Server (Node.js API)
+  # ------------------------------------------------------------
+  - type: web
+    name: dealforge-server
+    env: docker
+    dockerfilePath: ./server/Dockerfile
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: CLIENT_URL
+        # We will need to update this to the actual frontend URL Render generates
+        value: https://dealforge-client.onrender.com
+      
+      # The following should be populated securely via the Render Dashboard:
+      # - FIREBASE_PROJECT_ID
+      # - FIREBASE_CLIENT_EMAIL
+      # - FIREBASE_PRIVATE_KEY
+      # - ZOOM_CLIENT_ID
+      # - ZOOM_CLIENT_SECRET
+      # - ZOOM_WEBHOOK_SECRET_TOKEN
+      # - ZOOM_SDK_KEY
+      # - ZOOM_SDK_SECRET
+      # - ZOOM_VERIFY_TOKEN
+      # - RESEND_API_KEY
+      # - GOOGLE_CLIENT_ID
+      # - GOOGLE_CLIENT_SECRET
+      # - MICROSOFT_CLIENT_ID
+      # - MICROSOFT_CLIENT_SECRET
+      # - SESSION_SECRET
+      # - DODO_PAYMENTS_API_KEY
+      # - DODO_PAYMENTS_WEBHOOK_KEY
+
+  # ------------------------------------------------------------
+  # Frontend Client (React / Vite)
+  # ------------------------------------------------------------
+  - type: web
+    name: dealforge-client
+    env: static
+    buildCommand: npm install && npm run build --workspace=client
+    staticPublishPath: ./client/dist
+    envVars:
+      - key: VITE_API_URL
+        # We will need to update this to the actual backend URL Render generates
+        value: https://dealforge-server.onrender.com 
+      # - VITE_GA_ID (Optional: Google Analytics)
