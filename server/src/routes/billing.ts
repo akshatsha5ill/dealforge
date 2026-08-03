@@ -13,7 +13,7 @@ const router = express.Router();
 function getDodoClient() {
   return new DodoPayments({
     bearerToken: config.dodo.apiKey || '',
-    environment: config.isProd ? 'live_mode' : 'test_mode',
+    environment: 'live_mode',
   });
 }
 
