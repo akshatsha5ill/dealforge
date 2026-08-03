@@ -141,7 +141,6 @@ const publicApiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => (req.headers['x-api-key'] as string) || req.ip || 'unknown',
-  validate: { ipAddress: false },
   message: { error: 'API rate limit exceeded. Please slow down your requests.' }
 });
 
