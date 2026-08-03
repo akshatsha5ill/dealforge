@@ -44,13 +44,14 @@ export const generateEmailDraft = async (transcript: string, leadContext: Record
   return response.draft;
 };
 
-export const sendEmail = async (to: string, subject: string, body: string, emailApiKey: string, campaignId?: string) => {
+export const sendEmail = async (to: string, subject: string, body: string, emailApiKey: string, campaignId?: string, via: 'resend' | 'gmail' | 'outlook' = 'resend') => {
   const response = await apiClient.post<EmailSendResponse>('/email/send', {
     to,
     subject,
     body,
     emailApiKey,
     campaignId,
+    via,
   });
   return response;
 };

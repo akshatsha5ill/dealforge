@@ -4,31 +4,43 @@ import { db } from '../../services/local-db/db';
 import { analyzeMeeting } from '../../services/ai/ai-service';
 import { useStore } from '../../store';
 import { leadsDB } from '../../services/local-db/leads';
+import { getMonthlyAnalyzedCount } from '../../services/usage';
+import { canUseFeature, isTranscriptExpired } from '../../services/feature-gate';
+import { getEffectiveMeetingLimit, initReferrals } from '../../services/referral';
+import UpgradePrompt from '../../components/common/UpgradePrompt';
+import { trackEvent } from '../../services/usage-analytics';
 import { Meeting, Transcript, Analysis } from '../../types';
 
 export default function MeetingDetailPage() {
   const { id } = useParams();
 
   const { openAiKey, anthropicKey } = useStore();
+  const plan = useStore((state) => state.subscription?.plan);
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [transcript, setTranscript] = useState<Transcript | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [initialLoading, setInitialLoading] = useState(true);
+  const [usageExceeded, setUsageExceeded] = useState(false);
+  const [modelGated, setModelGated] = useState(false);
+  const [monthlyUsed, setMonthlyUsed] = useState(0);
 
   useEffect(() => {
     if (!id) return;
     const fetchData = async () => {
       try {
-        const [meetingData, transcriptData, analysisData] = await Promise.all([
+        const [meetingData, transcriptData, analysisData, used] = await Promise.all([
           db.meetings.get(id),
           db.transcripts.where('meetingId').equals(id).first(),
           db.ai_analysis.where('meetingId').equals(id).first(),
+          getMonthlyAnalyzedCount(),
         ]);
+        await initReferrals();
         setMeeting(meetingData || null);
         setTranscript(transcriptData || null);
         setAnalysis(analysisData?.summary ? analysisData : null);
+        setMonthlyUsed(used);
       } catch (err) {
         console.error('Failed to load meeting:', err);
       } finally {
@@ -42,16 +54,38 @@ export default function MeetingDetailPage() {
     if (!id) return;
     setLoading(true);
     setError('');
+    setUsageExceeded(false);
+    setModelGated(false);
     try {
       const transcriptText = transcript?.fullText || 'No transcript available for this meeting.';
       const apiKey = openAiKey || anthropicKey;
       if (!apiKey) {
+        trackEvent('analyze_blocked_no_key');
         setError('Please set an API key in Settings before analyzing.');
         setLoading(false);
         return;
       }
+
+      // Free plan: max N analyzed meetings per month, OpenAI model only
+      const used = await getMonthlyAnalyzedCount();
+      const limit = getEffectiveMeetingLimit(plan);
+      if (limit !== null && used >= limit) {
+        trackEvent('analyze_blocked_limit');
+        setUsageExceeded(true);
+        setLoading(false);
+        return;
+      }
       const model = openAiKey ? 'openai' : 'anthropic';
+      if (!canUseFeature(plan, 'allAiModels') && model !== 'openai') {
+        trackEvent('analyze_blocked_model');
+        setModelGated(true);
+        setLoading(false);
+        return;
+      }
+
+      trackEvent('analyze_clicked');
       const result = await analyzeMeeting(transcriptText, id, apiKey, model);
+      trackEvent('analyze_succeeded');
 
       const actionItems = result.actionItems ? result.actionItems.map((item: any) => typeof item === 'string' ? item : item.task) : [];
       const sentimentScore = result.sentiment?.score ?? 0;
@@ -75,10 +109,7 @@ export default function MeetingDetailPage() {
       setAnalysis(analysisRecord);
 
       // Auto Lead Creation & Scoring (Abstracted)
-      const createdCount = await leadsDB.createLeadsFromAnalysis(id, (result as any).leads || []);
-      if (createdCount > 0) {
-        console.log(`Generated ${createdCount} leads from meeting.`);
-      }
+      await leadsDB.createLeadsFromAnalysis(id, (result as any).leads || []);
     } catch (err) {
       console.error('Analysis failed:', err);
       setError('Failed to generate analysis. Check your API key in Settings.');
@@ -113,6 +144,10 @@ export default function MeetingDetailPage() {
     return new Date(dateStr).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
+  const transcriptExpired = isTranscriptExpired(plan, meeting.startTime);
+  const meetingLimit = getEffectiveMeetingLimit(plan);
+  const isFree = plan === 'free' || !plan;
+
   return (
     <div className="animate-fade-in">
       <div style={{ marginBottom: '20px' }}>
@@ -142,14 +177,20 @@ export default function MeetingDetailPage() {
         {/* Transcript */}
         <div className="ds-panel" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px', color: 'var(--accent-primary)' }}>Transcript</h2>
-          {transcript?.fullText ? (
+          {transcriptExpired ? (
+            <UpgradePrompt
+              feature="allAiModels"
+              description="Transcripts older than 30 days are available on Pro. Upgrade for unlimited meeting history."
+              compact
+            />
+          ) : transcript?.fullText ? (
             <div style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
               {transcript.fullText}
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
               <p style={{ fontSize: '14px' }}>No transcript available for this meeting.</p>
-              <p style={{ fontSize: '12px', marginTop: '8px' }}>Transcripts are captured when the Zoom panel is active during a meeting.</p>
+              <p style={{ fontSize: '12px', marginTop: '8px' }}>Transcripts are captured when the Zoom panel is active, or you can add one manually from the Meetings page.</p>
             </div>
           )}
         </div>
@@ -167,16 +208,35 @@ export default function MeetingDetailPage() {
 
             {!analysis ? (
               <div>
-                <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
-                  Generate an AI-powered summary, action items, and sentiment analysis for this meeting.
-                </p>
-                <button
-                  onClick={handleAnalyze}
-                  disabled={loading}
-                  style={{ padding: '10px 16px', backgroundColor: 'var(--accent-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: '8px', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 600, width: '100%', opacity: loading ? 0.7 : 1, fontSize: '14px', transition: 'opacity 0.2s' }}
-                >
-                  {loading ? 'Analyzing...' : 'Generate Summary'}
-                </button>
+                {usageExceeded ? (
+                  <UpgradePrompt
+                    feature="allAiModels"
+                    description={`You've reached your free limit of ${meetingLimit ?? 3} analyzed meetings per month. Upgrade to Pro for unlimited meetings, all AI models, and more.`}
+                  />
+                ) : modelGated ? (
+                  <UpgradePrompt
+                    feature="allAiModels"
+                    description="The free plan includes 1 AI model (OpenAI). Upgrade to Pro to use Anthropic and Gemini."
+                  />
+                ) : (
+                  <>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
+                      Generate an AI-powered summary, action items, and sentiment analysis for this meeting.
+                    </p>
+                    {isFree && meetingLimit !== null && !transcriptExpired && (
+                      <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '12px' }}>
+                        {monthlyUsed}/{meetingLimit} free analyses used this month
+                      </p>
+                    )}
+                    <button
+                      onClick={handleAnalyze}
+                      disabled={loading || transcriptExpired}
+                      style={{ padding: '10px 16px', backgroundColor: 'var(--accent-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: '8px', cursor: loading || transcriptExpired ? 'not-allowed' : 'pointer', fontWeight: 600, width: '100%', opacity: loading || transcriptExpired ? 0.5 : 1, fontSize: '14px', transition: 'opacity 0.2s' }}
+                    >
+                      {loading ? 'Analyzing...' : transcriptExpired ? 'Upgrade to analyze older meetings' : 'Generate Summary'}
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               <div>

@@ -7,6 +7,8 @@ import { dripWorker } from './services/drip-worker';
 import { db } from './services/local-db/db';
 import { runAutoBackup } from './services/local-db/backup';
 import { initAnalytics } from './services/analytics';
+import { initReferrals, retryPendingReferral } from './services/referral';
+import { useStore } from './store';
 import CookieConsent from './components/common/CookieConsent';
 import ToastContainer, { toast } from './components/common/Toast';
 import ConfirmDialogContainer from './components/common/ConfirmDialog';
@@ -19,10 +21,22 @@ function App() {
     initAuthListener();
     initAnalytics();
     if (navigator.storage && navigator.storage.persist) {
-      navigator.storage.persist().then(isPersisted => {
-        console.log(`Persisted storage granted: ${isPersisted}`);
-      });
+      navigator.storage.persist().catch(() => {});
     }
+
+    initReferrals().then((benefit) => {
+      if (benefit?.benefit === 'meeting_bonus') {
+        toast.success('Referral applied! +1 free meeting analysis for 3 months.');
+      } else if (benefit?.benefit === 'free_month') {
+        toast.success('Referral applied! You have 1 month of Pro credit.');
+      }
+    });
+
+    const unsubscribeAuth = useStore.subscribe((state, prevState) => {
+      if (state.isAuthenticated && !prevState.isAuthenticated) {
+        retryPendingReferral();
+      }
+    });
 
     const checkBackup = async () => {
       try {
@@ -47,6 +61,8 @@ function App() {
       }
     };
     checkBackup();
+
+    return unsubscribeAuth;
   }, []);
 
   useEffect(() => {

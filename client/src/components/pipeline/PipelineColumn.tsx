@@ -13,6 +13,7 @@ interface PipelineColumnProps {
   stage: Stage;
   deals: Deal[];
   isDragOver: boolean;
+  readOnly?: boolean;
   draggedId: string | null;
   onDragOver: (e: React.DragEvent, stageId: string) => void;
   onDragLeave: () => void;
@@ -27,6 +28,7 @@ export const PipelineColumn: React.FC<PipelineColumnProps> = ({
   stage,
   deals,
   isDragOver,
+  readOnly,
   draggedId,
   onDragOver,
   onDragLeave,
@@ -42,9 +44,9 @@ export const PipelineColumn: React.FC<PipelineColumnProps> = ({
     <div
       className="pipeline-column"
       style={{ borderColor: isDragOver ? stage.color : undefined }}
-      onDragOver={(e) => onDragOver(e, stage.id)}
-      onDragLeave={onDragLeave}
-      onDrop={(e) => {
+      onDragOver={readOnly ? undefined : (e) => onDragOver(e, stage.id)}
+      onDragLeave={readOnly ? undefined : onDragLeave}
+      onDrop={readOnly ? undefined : (e) => {
         const cardNode = (e.target as HTMLElement).closest('.pipeline-card');
         const targetDealId = cardNode ? cardNode.getAttribute('data-deal-id') : undefined;
         onDrop(e, stage.id, targetDealId ?? undefined);
@@ -66,13 +68,14 @@ export const PipelineColumn: React.FC<PipelineColumnProps> = ({
             key={deal.id}
             deal={deal}
             isDragged={draggedId === deal.id}
+            readOnly={readOnly}
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             onMove={onMove}
             onDelete={onDelete}
           />
         ))}
-        {isDragOver && (
+        {isDragOver && !readOnly && (
           <div className="drop-zone active">
             Drop here
           </div>

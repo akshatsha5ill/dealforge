@@ -2,7 +2,7 @@ import { useCookieConsent } from '../../hooks/useCookieConsent';
 import { enableAnalytics } from '../../services/analytics';
 
 export default function CookieConsent() {
-  const { consented, accept, decline, status } = useCookieConsent();
+  const { accept, decline, status } = useCookieConsent();
 
   if (status !== null) return null;
 

@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store';
 import { encryptKey, decryptKey, EncryptedKey } from '../../crypto/key-vault';
 import { db } from '../../services/local-db/db';
 import { requestPersistence, exportAllData, downloadJSON, getStorageUsage, selectBackupDirectory, importFromJSONFile, StorageUsage } from '../../services/local-db/backup';
-import { Database, Upload, Download, HardDrive } from 'lucide-react';
+import { Database, Upload, Download, HardDrive, Lock, Trash2 } from 'lucide-react';
+import { canUseFeature } from '../../services/feature-gate';
+import { PipelineSettings } from '../../components/settings/PipelineSettings';
+import { EmailIntegrationSettings } from '../../components/settings/EmailIntegrationSettings';
+import { ReferralProgram } from '../../components/settings/ReferralProgram';
+import { ApiAccess } from '../../components/settings/ApiAccess';
 import { toast } from '../../components/common/Toast';
 import styles from './SettingsPage.module.css';
 
@@ -23,6 +29,10 @@ interface EncryptedKeys {
 
 export default function SettingsPage() {
   const { setOpenAiKey, setAnthropicKey, setGeminiKey, setResendKey } = useStore();
+  const plan = useStore((state) => state.subscription?.plan);
+  const navigate = useNavigate();
+  const canAllModels = canUseFeature(plan, 'allAiModels');
+  const canEmail = canUseFeature(plan, 'emailOutreach');
   const [localOpenAi, setLocalOpenAi] = useState('');
   const [localAnthropic, setLocalAnthropic] = useState('');
   const [localGemini, setLocalGemini] = useState('');
@@ -35,6 +45,8 @@ export default function SettingsPage() {
   const [storageUsage, setStorageUsage] = useState<StorageUsage | null>(null);
   const [persistent, setPersistent] = useState(false);
   const [hasBackupDir, setHasBackupDir] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -80,6 +92,26 @@ export default function SettingsPage() {
   const handleRequestPersistence = async () => {
     const isPersistent = await requestPersistence();
     setPersistent(isPersistent);
+  };
+
+  const handleDeleteAllData = async () => {
+    setDeleting(true);
+    try {
+      await db.delete();
+      const keysToRemove = [
+        'dealforge_usage_events',
+        'dealforge_subscription',
+        'dealforge_autobackup',
+        'dealforge_last_autobackup',
+      ];
+      keysToRemove.forEach((key) => localStorage.removeItem(key));
+      toast.success('All local data deleted');
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+      console.error('Failed to delete data:', err);
+      toast.error('Failed to delete data');
+      setDeleting(false);
+    }
   };
 
   const decryptKeys = useCallback(async (encryptedData: EncryptedKeys) => {
@@ -199,32 +231,81 @@ export default function SettingsPage() {
               className={styles.formInput}
             />
 
-            <label className={styles.formLabel}>Anthropic API Key</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label className={styles.formLabel}>Anthropic API Key</label>
+              {!canAllModels && (
+                <span
+                  onClick={() => navigate('/dashboard/billing')}
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '10px', backgroundColor: 'rgba(168, 119, 20, 0.15)', color: 'var(--secondary)', border: '1px solid rgba(168, 119, 20, 0.4)' }}
+                  title="Available on Pro"
+                >
+                  <Lock size={9} /> Pro
+                </span>
+              )}
+            </div>
             <input
               type="password"
               value={localAnthropic}
               onChange={(e) => setLocalAnthropic(e.target.value)}
               placeholder="sk-ant-..."
               className={styles.formInput}
+              disabled={!canAllModels}
+              style={{ opacity: canAllModels ? 1 : 0.5 }}
             />
 
-            <label className={styles.formLabel}>Gemini API Key</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label className={styles.formLabel}>Gemini API Key</label>
+              {!canAllModels && (
+                <span
+                  onClick={() => navigate('/dashboard/billing')}
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '10px', backgroundColor: 'rgba(168, 119, 20, 0.15)', color: 'var(--secondary)', border: '1px solid rgba(168, 119, 20, 0.4)' }}
+                  title="Available on Pro"
+                >
+                  <Lock size={9} /> Pro
+                </span>
+              )}
+            </div>
             <input
               type="password"
               value={localGemini}
               onChange={(e) => setLocalGemini(e.target.value)}
               placeholder="AIza..."
               className={styles.formInput}
+              disabled={!canAllModels}
+              style={{ opacity: canAllModels ? 1 : 0.5 }}
             />
 
-            <label className={styles.formLabel}>Resend API Key (for Emails)</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label className={styles.formLabel}>Resend API Key (for Emails)</label>
+              {!canEmail && (
+                <span
+                  onClick={() => navigate('/dashboard/billing')}
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '10px', backgroundColor: 'rgba(168, 119, 20, 0.15)', color: 'var(--secondary)', border: '1px solid rgba(168, 119, 20, 0.4)' }}
+                  title="Available on Pro"
+                >
+                  <Lock size={9} /> Pro
+                </span>
+              )}
+            </div>
             <input
               type="password"
               value={localResend}
               onChange={(e) => setLocalResend(e.target.value)}
               placeholder="re_..."
               className={styles.formInput}
+              disabled={!canEmail}
+              style={{ opacity: canEmail ? 1 : 0.5 }}
             />
+
+            {(!canAllModels || !canEmail) && (
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
+                Anthropic, Gemini, and Resend keys are available on{' '}
+                <span onClick={() => navigate('/dashboard/billing')} style={{ color: 'var(--secondary)', cursor: 'pointer', textDecoration: 'underline' }}>
+                  Pro
+                </span>{' '}
+                and above. OpenAI key works on the free plan.
+              </p>
+            )}
 
             <div className={styles.buttonRow}>
               <button type="submit" className={styles.saveButton}>
@@ -305,6 +386,16 @@ export default function SettingsPage() {
                 {hasBackupDir ? 'Change Folder' : 'Setup Folder'}
               </button>
             </div>
+
+            <div className={styles.dataCard}>
+              <h3 className={styles.dataCardTitle}><Trash2 size={16} /> Delete All Data</h3>
+              <p className={styles.dataCardDescription}>
+                Permanently erase all meetings, analyses, leads, emails, keys, and settings from this browser. This cannot be undone.
+              </p>
+              <button onClick={() => setShowDeleteConfirm(true)} className={styles.dangerButton}>
+                Delete All Data
+              </button>
+            </div>
           </div>
 
           <div className={styles.storageStatus}>
@@ -327,6 +418,18 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Pipeline Customization (Enterprise) */}
+      <PipelineSettings />
+
+      {/* Email Integration (OAuth) */}
+      <EmailIntegrationSettings />
+
+      {/* Referral Program */}
+      <ReferralProgram />
+
+      {/* API Access (Pro) */}
+      <ApiAccess />
+
       {/* Encryption Prompt Modal */}
       {showPasswordPrompt && (
         <div className={styles.modalOverlay}>
@@ -347,6 +450,26 @@ export default function SettingsPage() {
               </button>
               <button onClick={confirmSave} disabled={!password || loading} className={styles.encryptButton}>
                 {loading ? 'Encrypting...' : 'Save & Encrypt'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete All Data Confirm Modal */}
+      {showDeleteConfirm && (
+        <div className={styles.modalOverlay}>
+          <div className={`ds-panel ${styles.modalContent}`}>
+            <h3 className={styles.modalTitle}>Delete All Data?</h3>
+            <p className={styles.modalDescription}>
+              This permanently deletes all meetings, transcripts, analyses, leads, deals, email drafts, API keys, and settings stored in this browser. Export a backup first if you might need this data later. Your account and subscription are not affected.
+            </p>
+            <div className={styles.modalActions}>
+              <button onClick={() => setShowDeleteConfirm(false)} className={styles.cancelButton} disabled={deleting}>
+                Cancel
+              </button>
+              <button onClick={handleDeleteAllData} disabled={deleting} className={styles.deleteConfirmButton}>
+                {deleting ? 'Deleting...' : 'Yes, Delete Everything'}
               </button>
             </div>
           </div>

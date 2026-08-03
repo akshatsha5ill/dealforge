@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
-import { CreditCard, Check, Zap, Crown, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Check, RefreshCw } from 'lucide-react';
 import { apiClient } from '../../services/api/client';
-import { PLAN_CONFIGS, SubscriptionPlan } from '../../types/billing';
+import { PLAN_CONFIGS, SubscriptionPlan, SubscriptionStatus } from '../../types/billing';
+import { useStore } from '../../store';
 import { toast } from '../../components/common/Toast';
 import styles from './BillingPage.module.css';
 
@@ -14,7 +15,8 @@ interface Subscription {
 }
 
 export default function BillingPage() {
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const setSubscription = useStore((state) => state.setSubscription);
+  const [subscription, setSubscriptionLocal] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
@@ -22,16 +24,29 @@ export default function BillingPage() {
   const [refreshing, setRefreshing] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchSubscription = async () => {
+  const updateSubscription = useCallback((data: Subscription | null) => {
+    setSubscriptionLocal(data);
+    if (data) {
+      setSubscription({
+        plan: data.plan,
+        status: (['active', 'cancelled', 'past_due', 'trialing'].includes(data.status) ? data.status : 'active') as SubscriptionStatus,
+        currentPeriodEnd: data.currentPeriodEnd,
+        customerId: data.customerId,
+        subscriptionId: data.subscriptionId,
+      });
+    }
+  }, [setSubscription]);
+
+  const fetchSubscription = useCallback(async () => {
     try {
       const data = await apiClient.get<Subscription>('/billing/subscription');
-      setSubscription(data);
+      updateSubscription(data);
       return data;
     } catch (err) {
       console.error('Failed to fetch subscription:', err);
       return null;
     }
-  };
+  }, [updateSubscription]);
 
   const refreshSubscription = async () => {
     setRefreshing(true);
@@ -55,7 +70,6 @@ export default function BillingPage() {
       fetchSubscription().finally(() => setLoading(false));
       return;
     }
-
     setVerifyingPayment(true);
     const pendingPlan = localStorage.getItem('pending_plan') || 'pro';
 
@@ -105,7 +119,7 @@ export default function BillingPage() {
         clearInterval(pollingRef.current);
       }
     };
-  }, []);
+  }, [fetchSubscription]);
 
   const handleCheckout = async (plan: SubscriptionPlan) => {
     if (plan === 'free') return;
@@ -127,7 +141,8 @@ export default function BillingPage() {
     setCancelLoading(true);
     try {
       await apiClient.post('/billing/cancel');
-      setSubscription((prev) => prev ? { ...prev, status: 'cancelled' } : prev);
+      const updated = { ...(subscription || { plan: 'free' as SubscriptionPlan, status: '', currentPeriodEnd: null, customerId: null, subscriptionId: null }), status: 'cancelled' };
+      updateSubscription(updated);
       toast.success('Subscription cancelled. It will remain active until the end of the billing period.');
     } catch (err) {
       console.error('Cancel failed:', err);
@@ -202,7 +217,6 @@ export default function BillingPage() {
             const isCurrent = key === currentPlan;
             const isUpgrade = key !== 'free' && PLAN_CONFIGS[key].price > PLAN_CONFIGS[currentPlan].price;
             const isDowngrade = key !== 'free' && PLAN_CONFIGS[key].price < PLAN_CONFIGS[currentPlan].price;
-            const planIcon = key === 'enterprise' ? Crown : Zap;
 
             return (
               <div key={key} className={`${styles.planCard} ${isCurrent ? styles.current : ''}`}>
@@ -222,6 +236,11 @@ export default function BillingPage() {
                     </li>
                   ))}
                 </ul>
+                {key === 'enterprise' && (
+                  <div style={{ marginTop: '-4px', marginBottom: '12px', fontSize: '12px', color: 'var(--secondary)', fontWeight: 600 }}>
+                    Team discount: $59/seat/mo for teams of 5+
+                  </div>
+                )}
                 {isCurrent ? (
                   <button className={`${styles.planCardButton} ${styles.primary}`} disabled>
                     Current Plan

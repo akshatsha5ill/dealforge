@@ -9,6 +9,7 @@ import { ErrorBoundary } from './components/common';
 
 // Lazy loaded components for code splitting
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage'));
+const OnboardingPage = lazy(() => import('./pages/onboarding/OnboardingPage'));
 const MeetingsPage = lazy(() => import('./pages/dashboard/MeetingsPage'));
 const MeetingDetailPage = lazy(() => import('./pages/dashboard/MeetingDetailPage'));
 const LeadsPage = lazy(() => import('./pages/dashboard/LeadsPage'));
@@ -37,6 +38,16 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/onboarding',
+    element: (
+      <ProtectedRoute>
+        <Suspense fallback={<SuspenseFallback />}>
+          <OnboardingPage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
   },
   { path: '/privacy', element: <Suspense fallback={<SuspenseFallback />}><PrivacyPolicy /></Suspense> },
   { path: '/terms', element: <Suspense fallback={<SuspenseFallback />}><TermsOfService /></Suspense> },

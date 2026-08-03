@@ -23,6 +23,8 @@ export interface PlanConfig {
     prioritySupport: boolean;
     customStages: boolean;
     teamFeatures: boolean;
+    apiAccess: boolean;
+    transcriptHistoryDays: number | null;
   };
   productId: string | null;
 }
@@ -33,19 +35,22 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
     price: 0,
     priceLabel: '$0',
     features: [
-      '5 meetings/month',
+      '3 meetings/month',
       'Basic meeting summaries',
       '1 AI model',
+      '30-day transcript history',
       'Local data storage',
     ],
     limits: {
-      meetingsPerMonth: 5,
+      meetingsPerMonth: 3,
       aiModels: 1,
       emailOutreach: false,
       pipeline: false,
       prioritySupport: false,
       customStages: false,
       teamFeatures: false,
+      apiAccess: false,
+      transcriptHistoryDays: 30,
     },
     productId: null,
   },
@@ -59,6 +64,7 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
       'Email outreach',
       'Pipeline management',
       'All AI models',
+      'API access',
       'Advanced analytics',
     ],
     limits: {
@@ -69,6 +75,8 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
       prioritySupport: false,
       customStages: false,
       teamFeatures: false,
+      apiAccess: true,
+      transcriptHistoryDays: null,
     },
     productId: null,
   },
@@ -92,6 +100,8 @@ export const PLAN_CONFIGS: Record<SubscriptionPlan, PlanConfig> = {
       prioritySupport: true,
       customStages: true,
       teamFeatures: true,
+      apiAccess: true,
+      transcriptHistoryDays: null,
     },
     productId: null,
   },

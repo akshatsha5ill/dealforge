@@ -39,8 +39,9 @@ export default function LoginPage() {
     setError('');
     setGoogleLoading(true);
     try {
-      await loginWithGoogle();
-      navigate('/dashboard');
+      const user = await loginWithGoogle();
+      const isNew = !!user && user.metadata.creationTime === user.metadata.lastSignInTime;
+      navigate(isNew ? '/onboarding' : '/dashboard');
     } catch (err: any) {
       setError(resolveError(err));
     } finally {
@@ -61,10 +62,11 @@ export default function LoginPage() {
     try {
       if (isRegister) {
         await registerWithEmail(email, password);
+        navigate('/onboarding');
       } else {
         await loginWithEmail(email, password);
+        navigate('/dashboard');
       }
-      navigate('/dashboard');
     } catch (err: any) {
       setError(resolveError(err));
     } finally {

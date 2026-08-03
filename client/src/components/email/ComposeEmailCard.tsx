@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Send, Sparkles, FileText, Plus, Trash2 } from 'lucide-react';
 import { RichTextEditor } from '../common/RichTextEditor';
 import { Lead, EmailSequenceStep } from '../../types';
+import { IntegrationInfo } from '../../services/email-integration';
 import './Email.css';
 
 interface EmailForm {
@@ -11,6 +12,8 @@ interface EmailForm {
   type: string;
   sequence?: EmailSequenceStep[];
 }
+
+type SendVia = 'resend' | 'gmail' | 'outlook';
 
 interface ComposeEmailProps {
   form: EmailForm;
@@ -25,6 +28,9 @@ interface ComposeEmailProps {
   handleAiDraft: () => void;
   handleSaveDraft: () => void;
   handleSend: () => void;
+  via: SendVia;
+  setVia: (via: SendVia) => void;
+  integrations: IntegrationInfo[];
 }
 
 export const ComposeEmailCard: React.FC<ComposeEmailProps> = ({
@@ -40,6 +46,9 @@ export const ComposeEmailCard: React.FC<ComposeEmailProps> = ({
   handleAiDraft,
   handleSaveDraft,
   handleSend,
+  via,
+  setVia,
+  integrations,
 }) => {
   useEffect(() => {
     if (form.type === 'drip_campaign' && (!form.sequence || form.sequence.length === 0)) {
@@ -48,7 +57,10 @@ export const ComposeEmailCard: React.FC<ComposeEmailProps> = ({
         sequence: [{ delayDays: 1, subject: '', body: '' }]
       }));
     }
-  }, [form.type, setForm]);
+  }, [form.type, form.sequence, setForm]);
+
+  const connectedProviders = integrations.filter((i) => i.connected).map((i) => i.provider);
+  const isDrip = form.type === 'drip_campaign';
 
   const addSequenceStep = () => {
     setForm((prev) => ({
@@ -123,6 +135,21 @@ export const ComposeEmailCard: React.FC<ComposeEmailProps> = ({
             <option value="drip_campaign">Automated Drip Campaign</option>
           </select>
         </div>
+        {!isDrip && (
+          <div>
+            <label className="form-label">Send Via</label>
+            <select
+              value={via}
+              onChange={(e) => setVia(e.target.value as SendVia)}
+              className="input-style"
+              style={{ cursor: 'pointer', appearance: 'none' }}
+            >
+              <option value="resend">Resend API Key</option>
+              {connectedProviders.includes('gmail') && <option value="gmail">Gmail</option>}
+              {connectedProviders.includes('outlook') && <option value="outlook">Outlook</option>}
+            </select>
+          </div>
+        )}
       </div>
 
       {form.leadId && (

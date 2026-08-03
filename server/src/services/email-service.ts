@@ -23,4 +23,54 @@ const sendDraft = async (to: string, subject: string, body: string, { apiKey = c
   return data;
 };
 
-export { sendDraft };
+const sendViaGmail = async (accessToken: string, to: string, subject: string, body: string) => {
+  const message = [
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    'MIME-Version: 1.0',
+    '',
+    body,
+  ].join('\r\n');
+
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ raw: Buffer.from(message, 'utf8').toString('base64url') }),
+  });
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new AppError(`Gmail send failed: ${detail || res.statusText}`, 500);
+  }
+  return { id: (await res.json() as { id: string }).id, via: 'gmail' };
+};
+
+const sendViaOutlook = async (accessToken: string, to: string, subject: string, body: string) => {
+  const res = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message: {
+        subject,
+        body: { contentType: 'HTML', content: body },
+        toRecipients: [{ emailAddress: { address: to } }],
+      },
+      saveToSentItems: true,
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new AppError(`Outlook send failed: ${detail || res.statusText}`, 500);
+  }
+  return { id: `outlook-${Date.now()}`, via: 'outlook' };
+};
+
+export { sendDraft, sendViaGmail, sendViaOutlook };

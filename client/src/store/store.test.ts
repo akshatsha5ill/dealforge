@@ -3,6 +3,7 @@ import { useStore } from './index';
 
 describe('Zustand Store', () => {
   beforeEach(() => {
+    localStorage.clear();
     useStore.setState({
       user: null,
       isAuthenticated: false,
@@ -12,6 +13,8 @@ describe('Zustand Store', () => {
       resendKey: '',
       error: null,
       isLoading: false,
+      subscription: null,
+      subscriptionLoading: false,
     });
   });
 
@@ -23,6 +26,7 @@ describe('Zustand Store', () => {
     expect(state.anthropicKey).toBe('');
     expect(state.geminiKey).toBe('');
     expect(state.resendKey).toBe('');
+    expect(state.subscription).toBeNull();
   });
 
   it('sets OpenAI key', () => {
@@ -56,7 +60,19 @@ describe('Zustand Store', () => {
     expect(useStore.getState().error).toBeNull();
   });
 
-  it('logout clears all keys and user', () => {
+  it('sets and persists subscription via store', () => {
+    useStore.getState().setSubscription({
+      plan: 'pro',
+      status: 'active',
+      currentPeriodEnd: null,
+      customerId: 'cus_123',
+      subscriptionId: 'sub_123',
+    });
+    expect(useStore.getState().subscription?.plan).toBe('pro');
+    expect(JSON.parse(localStorage.getItem('dealforge_subscription') || '{}').plan).toBe('pro');
+  });
+
+  it('clears subscription on logout', () => {
     useStore.setState({
       user: { uid: '123', email: 'test@test.com' } as never,
       isAuthenticated: true,
@@ -64,6 +80,7 @@ describe('Zustand Store', () => {
       anthropicKey: 'sk-ant-test',
       geminiKey: 'AIza-test',
       resendKey: 're_test',
+      subscription: { plan: 'pro', status: 'active', currentPeriodEnd: null, customerId: null, subscriptionId: null },
     });
 
     useStore.getState().logout();
@@ -75,5 +92,6 @@ describe('Zustand Store', () => {
     expect(state.anthropicKey).toBe('');
     expect(state.geminiKey).toBe('');
     expect(state.resendKey).toBe('');
+    expect(state.subscription).toBeNull();
   });
 });

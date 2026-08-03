@@ -1,0 +1,83 @@
+import express, { Response, NextFunction } from 'express';
+import { apiKeyAuth } from '../middleware/apiKeyAuth.js';
+import { AuthRequest } from '../middleware/auth.js';
+import {
+  getMeetingsWithAnalyses,
+  getMeetingDetail,
+  getLeads,
+  getDeals,
+} from '../services/api-data-service.js';
+import { AppError } from '../middleware/errorHandler.js';
+
+const router = express.Router();
+
+router.use(apiKeyAuth);
+
+router.get(
+  '/meetings',
+  async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const uid = req.user?.uid;
+      if (!uid) {
+        throw new AppError('Unauthorized', 401);
+      }
+      const meetings = await getMeetingsWithAnalyses(uid);
+      res.status(200).json({ data: meetings });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  '/meetings/:id',
+  async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const uid = req.user?.uid;
+      if (!uid) {
+        throw new AppError('Unauthorized', 401);
+      }
+      const meeting = await getMeetingDetail(uid, req.params.id);
+      if (!meeting) {
+        throw new AppError('Meeting not found', 404);
+      }
+      res.status(200).json({ data: meeting });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  '/leads',
+  async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const uid = req.user?.uid;
+      if (!uid) {
+        throw new AppError('Unauthorized', 401);
+      }
+      const leads = await getLeads(uid);
+      res.status(200).json({ data: leads });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  '/deals',
+  async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const uid = req.user?.uid;
+      if (!uid) {
+        throw new AppError('Unauthorized', 401);
+      }
+      const deals = await getDeals(uid);
+      res.status(200).json({ data: deals });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+export default router;

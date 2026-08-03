@@ -14,6 +14,12 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "Firebase JWT"
+      },
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "Read-only API key (generated in Settings → API Access). Available on Pro."
       }
     },
     "schemas": {
@@ -104,6 +110,117 @@
           "id": { "type": "string" },
           "from": { "type": "string" },
           "to": { "type": "string" }
+        }
+      },
+      "ApiKeyNew": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "key": { "type": "string", "description": "Full API key. Shown only once — store it securely." },
+          "keyHash": { "type": "string" },
+          "name": { "type": "string" },
+          "prefix": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ApiKeySummary": {
+        "type": "object",
+        "properties": {
+          "keyHash": { "type": "string" },
+          "name": { "type": "string" },
+          "prefix": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "lastUsedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "revoked": { "type": "boolean" }
+        }
+      },
+      "SyncPayload": {
+        "type": "object",
+        "properties": {
+          "meetings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id"],
+              "properties": {
+                "id": { "type": "string" },
+                "title": { "type": "string" },
+                "startTime": { "type": "string" },
+                "endTime": { "type": "string" },
+                "duration": { "type": "number" },
+                "status": { "type": "string" }
+              }
+            }
+          },
+          "analyses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "meetingId"],
+              "properties": {
+                "id": { "type": "string" },
+                "meetingId": { "type": "string" },
+                "summary": { "type": "string" },
+                "actionItems": { "type": "array", "items": { "type": "string" } },
+                "leadScore": { "type": "number" },
+                "modelUsed": { "type": "string" },
+                "analyzedAt": { "type": "string" }
+              }
+            }
+          },
+          "leads": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id"],
+              "properties": {
+                "id": { "type": "string" },
+                "meetingId": { "type": "string" },
+                "name": { "type": "string" },
+                "email": { "type": "string" },
+                "company": { "type": "string" },
+                "role": { "type": "string" },
+                "score": { "type": "number" },
+                "stage": { "type": "string" },
+                "createdAt": { "type": "string" },
+                "updatedAt": { "type": "string" }
+              }
+            }
+          },
+          "deals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id"],
+              "properties": {
+                "id": { "type": "string" },
+                "leadId": { "type": "string" },
+                "title": { "type": "string" },
+                "stage": { "type": "string" },
+                "value": { "type": "number" },
+                "probability": { "type": "number" },
+                "expectedClose": { "type": "string" },
+                "createdAt": { "type": "string" },
+                "updatedAt": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "MeetingWithAnalysis": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "startTime": { "type": "string" },
+          "endTime": { "type": "string" },
+          "duration": { "type": "number" },
+          "status": { "type": "string" },
+          "summary": { "type": "string", "nullable": true },
+          "actionItems": { "type": "array", "items": { "type": "string" } },
+          "leadScore": { "type": "number", "nullable": true },
+          "modelUsed": { "type": "string", "nullable": true },
+          "analyzedAt": { "type": "string", "nullable": true }
         }
       }
     }
@@ -585,6 +702,307 @@
             }
           },
           "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/referrals/claim": {
+      "post": {
+        "summary": "Claim a referral code",
+        "description": "Records that the authenticated user was referred by a code. Free users get +1 analyzed meeting/month for 3 months; paid users get 1 free month credit.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code"],
+                "properties": {
+                  "code": { "type": "string", "example": "DF-ABCD2345" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Claim result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "claimStatus": { "type": "string", "enum": ["claimed", "already_claimed", "self_referral", "invalid_code", "limit_reached"] },
+                    "benefit": { "type": "string", "enum": ["meeting_bonus", "free_month"] },
+                    "code": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/referrals/status": {
+      "get": {
+        "summary": "Get referral status",
+        "description": "Returns the user's referral code, claimed codes, active benefits, and how many people used their code.",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Referral status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "code": { "type": "string" },
+                    "bonusMeetings": { "type": "integer" },
+                    "freeMonthsCredit": { "type": "integer" },
+                    "referralsMade": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "uid": { "type": "string" },
+                          "claimedAt": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api-keys": {
+      "post": {
+        "summary": "Create an API key",
+        "description": "Creates a new read-only API key. The full key is returned only once.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "description": "Optional label for the key" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Key created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApiKeyNew" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Requires Pro plan" }
+        }
+      },
+      "get": {
+        "summary": "List API keys",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of API keys (full key never returned)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "keys": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/ApiKeySummary" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api-keys/{keyHash}": {
+      "delete": {
+        "summary": "Revoke an API key",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "keyHash",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Key revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "revoked": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Key not found" }
+        }
+      }
+    },
+    "/sync": {
+      "post": {
+        "summary": "Sync derived data (summaries, action items, lead scores — never transcripts)",
+        "description": "Opt-in: pushes derived meeting intelligence from the local-first client to the server so the read-only API can serve it. Body is idempotent; each item is upserted by id.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SyncPayload" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Synced",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Requires Pro plan" }
+        }
+      }
+    },
+    "/v1/meetings": {
+      "get": {
+        "summary": "List meetings with summaries and action items",
+        "security": [{ "ApiKeyAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Meetings with joined analysis data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/MeetingWithAnalysis" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" }
+        }
+      }
+    },
+    "/v1/meetings/{id}": {
+      "get": {
+        "summary": "Get a single meeting with its analysis",
+        "security": [{ "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Meeting detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "$ref": "#/components/schemas/MeetingWithAnalysis" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" },
+          "404": { "description": "Meeting not found" }
+        }
+      }
+    },
+    "/v1/leads": {
+      "get": {
+        "summary": "List leads",
+        "security": [{ "ApiKeyAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Leads",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/SyncPayload/properties/leads/items" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" }
+        }
+      }
+    },
+    "/v1/deals": {
+      "get": {
+        "summary": "List deals",
+        "security": [{ "ApiKeyAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Deals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/SyncPayload/properties/deals/items" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" }
         }
       }
     }

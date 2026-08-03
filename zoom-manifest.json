@@ -1,0 +1,34 @@
+{
+  "name": "DealForge AI",
+  "shortDescription": "AI-powered meeting intelligence and CRM for Zoom",
+  "longDescription": "DealForge integrates into your Zoom client to provide real-time AI transcription, automated lead scoring, deal pipeline management, and email outreach. Turn every sales meeting into actionable leads and closed deals.",
+  "companyName": "DealForge",
+  "version": "1.0.0",
+  "categories": ["Sales", "Productivity", "CRM"],
+  "scopes": [
+    "meeting:read:admin",
+    "meeting:write",
+    "user:read"
+  ],
+  "redirectUris": [
+    "https://YOUR_SERVER_DOMAIN/api/zoom/oauth/callback"
+  ],
+  "webhookUris": [
+    "https://YOUR_SERVER_DOMAIN/api/zoom/webhook"
+  ],
+  "deauthUri": "https://YOUR_SERVER_DOMAIN/api/zoom/deauth",
+  "verificationUri": "https://YOUR_SERVER_DOMAIN/zoomverify/verifyzoom.html",
+  "features": [
+    "zoomApp",
+    "meetingPanel"
+  ],
+  "supportUrl": "https://YOUR_CLIENT_DOMAIN/support",
+  "privacyPolicyUrl": "https://YOUR_CLIENT_DOMAIN/privacy",
+  "termsOfServiceUrl": "https://YOUR_CLIENT_DOMAIN/terms",
+  "developerContact": {
+    "name": "DealForge Engineering",
+    "email": "engineering@dealforge.app"
+  },
+  "clientId": "YOUR_ZOOM_CLIENT_ID",
+  "clientSecret": "YOUR_ZOOM_CLIENT_SECRET"
+}

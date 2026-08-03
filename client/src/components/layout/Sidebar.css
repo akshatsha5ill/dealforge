@@ -60,7 +60,7 @@
   color: var(--text-secondary);
   text-decoration: none;
   display: grid;
-  grid-template-columns: 24px 20px 1fr;
+  grid-template-columns: 24px 20px 1fr auto;
   gap: 12px;
   align-items: center;
   padding: 12px 32px;
@@ -133,6 +133,10 @@
 
   .sidebar-link-num,
   .sidebar-link-label {
+    display: none;
+  }
+
+  .sidebar-link-lock {
     display: none;
   }
 }

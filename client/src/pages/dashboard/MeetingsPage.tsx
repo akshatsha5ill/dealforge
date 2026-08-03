@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../../services/local-db/db';
 import { TableVirtuoso } from 'react-virtuoso';
 import { Meeting } from '../../types';
+import { ManualTranscriptModal } from '../../components/meetings/ManualTranscriptModal';
+import { Plus } from 'lucide-react';
 
 export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showManualModal, setShowManualModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,14 +41,24 @@ export default function MeetingsPage() {
           <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '4px' }}>Meetings</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{meetings.length} total meetings</p>
         </div>
-        <input
-          type="text"
-          placeholder="Search meetings..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ padding: '10px 14px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '14px', width: '250px' }}
-        />
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Search meetings..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ padding: '10px 14px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '14px', width: '250px' }}
+          />
+          <button
+            onClick={() => setShowManualModal(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 16px', backgroundColor: 'var(--accent-primary)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '14px' }}
+          >
+            <Plus size={16} /> New Meeting
+          </button>
+        </div>
       </div>
+
+      {showManualModal && <ManualTranscriptModal onClose={() => setShowManualModal(false)} />}
 
       <div className="ds-panel" style={{ padding: '20px' }}>
         {loading ? (
@@ -53,7 +66,7 @@ export default function MeetingsPage() {
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
             <p style={{ fontSize: '16px', marginBottom: '8px' }}>{search ? 'No meetings match your search' : 'No meetings yet'}</p>
-            <p style={{ fontSize: '13px' }}>{search ? 'Try a different search term' : 'Start a meeting in Zoom to see data here.'}</p>
+            <p style={{ fontSize: '13px' }}>{search ? 'Try a different search term' : 'Start a meeting in Zoom or add a transcript manually to get AI-powered meeting intelligence.'}</p>
           </div>
         ) : (
           <TableVirtuoso

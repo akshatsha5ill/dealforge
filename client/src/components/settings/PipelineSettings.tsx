@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getPipelineStages, savePipelineStages, Stage, DEFAULT_STAGES } from '../../utils/stages';
 import { Settings2, Plus, Trash2, GripVertical, Check } from 'lucide-react';
+import FeatureGate from '../common/FeatureGate';
 
 export function PipelineSettings() {
   const [stages, setStages] = useState<Stage[]>([]);
@@ -51,6 +52,10 @@ export function PipelineSettings() {
   if (loading) return <div>Loading pipeline settings...</div>;
 
   return (
+    <FeatureGate
+      feature="customStages"
+      description="Customize your pipeline stages to match your sales process. Available on Enterprise."
+    >
     <div className="ds-panel" style={{ padding: '28px', gridColumn: '1 / -1' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
         <div>
@@ -115,18 +120,19 @@ export function PipelineSettings() {
         ))}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={addStage} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: 'var(--bg-secondary)', border: '1px dashed var(--border)', borderRadius: '6px', color: 'var(--text-primary)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
-          <Plus size={16} /> Add Stage
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {saved && <span style={{ color: 'var(--success)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}><Check size={14} /> Saved!</span>}
-          <button onClick={handleSave} disabled={saving} style={{ padding: '8px 24px', backgroundColor: 'var(--accent-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: saving ? 'not-allowed' : 'pointer' }}>
-            {saving ? 'Saving...' : 'Save Pipeline Stages'}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button onClick={addStage} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: 'var(--bg-secondary)', border: '1px dashed var(--border)', borderRadius: '6px', color: 'var(--text-primary)', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+            <Plus size={16} /> Add Stage
           </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {saved && <span style={{ color: 'var(--success)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}><Check size={14} /> Saved!</span>}
+            <button onClick={handleSave} disabled={saving} style={{ padding: '8px 24px', backgroundColor: 'var(--accent-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: saving ? 'not-allowed' : 'pointer' }}>
+              {saving ? 'Saving...' : 'Save Pipeline Stages'}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </FeatureGate>
   );
 }

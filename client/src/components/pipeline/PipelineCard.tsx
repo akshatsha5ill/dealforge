@@ -27,6 +27,7 @@ export function formatDate(dateStr: string | null) {
 interface PipelineCardProps {
   deal: Deal;
   isDragged: boolean;
+  readOnly?: boolean;
   onDragStart: (e: React.DragEvent, dealId: string) => void;
   onDragEnd: () => void;
   onMove: (dealId: string, direction: 'forward' | 'backward') => void;
@@ -36,6 +37,7 @@ interface PipelineCardProps {
 export const PipelineCard: React.FC<PipelineCardProps> = ({
   deal,
   isDragged,
+  readOnly,
   onDragStart,
   onDragEnd,
   onMove,
@@ -50,12 +52,12 @@ export const PipelineCard: React.FC<PipelineCardProps> = ({
     <div
       className={`pipeline-card ${isDragged ? 'dragging' : ''}`}
       data-deal-id={deal.id}
-      draggable
+      draggable={!readOnly}
       onDragStart={(e) => onDragStart(e, deal.id)}
       onDragEnd={onDragEnd}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-        <GripVertical size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+        <GripVertical size={14} style={{ color: readOnly ? 'var(--text-muted)' : 'var(--text-muted)', flexShrink: 0, opacity: readOnly ? 0.35 : 1 }} />
         <div className="card-title">{deal.title}</div>
       </div>
       <div className="card-row">
@@ -70,38 +72,40 @@ export const PipelineCard: React.FC<PipelineCardProps> = ({
         <Calendar size={12} style={{ color: 'var(--text-muted)' }} />
         <span>{formatDate(deal.expectedClose)}</span>
       </div>
-      <div className="card-actions">
-        <div className="move-btn-group">
+      {!readOnly && (
+        <div className="card-actions">
+          <div className="move-btn-group">
+            <button
+              className="action-btn"
+              style={{
+                opacity: canGoBack ? 1 : 0.3,
+                pointerEvents: canGoBack ? 'auto' : 'none',
+              }}
+              onClick={() => onMove(deal.id, 'backward')}
+              title={`Move backward`}
+            >
+              <ArrowLeft size={12} />
+            </button>
+            <button
+              className="action-btn"
+              style={{
+                opacity: canGoForward ? 1 : 0.3,
+                pointerEvents: canGoForward ? 'auto' : 'none',
+              }}
+              onClick={() => onMove(deal.id, 'forward')}
+              title={`Move forward`}
+            >
+              <ArrowRight size={12} />
+            </button>
+          </div>
           <button
-            className="action-btn"
-            style={{
-              opacity: canGoBack ? 1 : 0.3,
-              pointerEvents: canGoBack ? 'auto' : 'none',
-            }}
-            onClick={() => onMove(deal.id, 'backward')}
-            title={`Move backward`}
+            className="action-btn danger"
+            onClick={() => onDelete(deal.id)}
           >
-            <ArrowLeft size={12} />
-          </button>
-          <button
-            className="action-btn"
-            style={{
-              opacity: canGoForward ? 1 : 0.3,
-              pointerEvents: canGoForward ? 'auto' : 'none',
-            }}
-            onClick={() => onMove(deal.id, 'forward')}
-            title={`Move forward`}
-          >
-            <ArrowRight size={12} />
+            <Trash2 size={12} />
           </button>
         </div>
-        <button
-          className="action-btn danger"
-          onClick={() => onDelete(deal.id)}
-        >
-          <Trash2 size={12} />
-        </button>
-      </div>
+      )}
     </div>
   );
 };

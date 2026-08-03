@@ -27,6 +27,13 @@ export const config = {
   email: {
     resendApiKey: process.env.RESEND_API_KEY,
     from: process.env.EMAIL_FROM || 'DealForge <noreply@dealforge.app>',
+    googleClientId: process.env.GOOGLE_CLIENT_ID,
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    microsoftClientId: process.env.MICROSOFT_CLIENT_ID,
+    microsoftClientSecret: process.env.MICROSOFT_CLIENT_SECRET,
+    get oauthRedirectBase() {
+      return process.env.OAUTH_REDIRECT_BASE || `${process.env.CLIENT_URL || 'http://localhost:3000'}/api/email/oauth`;
+    },
   },
 
   firebase: {

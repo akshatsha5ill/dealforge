@@ -1,15 +1,20 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Send, Mail, Clock, CheckCircle, FileText, Plus, X, Search, RefreshCw } from 'lucide-react';
+import { Send, Mail, Clock, CheckCircle, FileText, Plus, X, Search, RefreshCw, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../../services/local-db/db';
 import { useStore } from '../../store';
 import { apiClient } from '../../services/api/client';
 import { auth } from '../../services/firebase/config';
+import { canUseFeature } from '../../services/feature-gate';
+import UpgradePrompt from '../../components/common/UpgradePrompt';
 import { ComposeEmailCard } from '../../components/email/ComposeEmailCard';
 import { EmailCampaignCard } from '../../components/email/EmailCampaignCard';
 import { DripCampaignCard } from '../../components/email/DripCampaignCard';
 import { confirm } from '../../components/common/ConfirmDialog';
 import { EmailSequenceStep } from '../../types';
 import { EmailCampaign, Lead, DripCampaign } from '../../types';
+import { getEmailIntegrationStatus, IntegrationInfo } from '../../services/email-integration';
+import { trackEvent } from '../../services/usage-analytics';
 import '../../components/email/Email.css';
 
 const STATUS_CONFIG: Record<string, any> = {
@@ -21,6 +26,9 @@ const STATUS_CONFIG: Record<string, any> = {
 
 export default function EmailPage() {
   const { openAiKey } = useStore();
+  const plan = useStore((state) => state.subscription?.plan);
+  const navigate = useNavigate();
+  const canEmail = canUseFeature(plan, 'emailOutreach');
   const [campaigns, setCampaigns] = useState<EmailCampaign[]>([]);
   const [dripCampaigns, setDripCampaigns] = useState<DripCampaign[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -30,6 +38,8 @@ export default function EmailPage() {
   const [search, setSearch] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [sendLoading, setSendLoading] = useState(false);
+  const [via, setVia] = useState<'resend' | 'gmail' | 'outlook'>('resend');
+  const [integrations, setIntegrations] = useState<IntegrationInfo[]>([]);
 
   const [form, setForm] = useState<{
     leadId: string;
@@ -121,6 +131,16 @@ export default function EmailPage() {
   }, [loadData]);
 
   useEffect(() => {
+    let active = true;
+    getEmailIntegrationStatus()
+      .then((res) => {
+        if (active) setIntegrations(res.integrations);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
     syncTrackingEvents();
     const interval = setInterval(syncTrackingEvents, 30000);
     return () => clearInterval(interval);
@@ -158,9 +178,10 @@ export default function EmailPage() {
   });
 
   const handleAiDraft = async () => {
-    if (!form.leadId) return;
+    if (!canEmail || !form.leadId) return;
     setAiLoading(true);
     try {
+      trackEvent('email_drafted');
       const lead = leads.find(l => l.id === form.leadId);
       let transcriptContext = '';
       try {
@@ -217,7 +238,7 @@ export default function EmailPage() {
   };
 
   const handleSaveDraft = async () => {
-    if (!form.leadId || !form.subject) return;
+    if (!canEmail || !form.leadId || !form.subject) return;
     const campaign = {
       id: crypto.randomUUID(),
       leadId: form.leadId,
@@ -236,7 +257,7 @@ export default function EmailPage() {
   };
 
   const handleSend = async () => {
-    if (!form.leadId || !form.subject) return;
+    if (!canEmail || !form.leadId || !form.subject) return;
     setSendLoading(true);
     try {
       const lead = leads.find(l => l.id === form.leadId);
@@ -269,7 +290,8 @@ export default function EmailPage() {
             body: form.body,
             leadId: form.leadId,
             campaignId,
-            emailApiKey: useStore.getState().resendKey
+            emailApiKey: useStore.getState().resendKey,
+            via,
           }),
         });
 
@@ -301,6 +323,7 @@ export default function EmailPage() {
 
       setForm({ leadId: '', subject: '', body: '', type: 'follow_up', sequence: [] });
       setShowCompose(false);
+      trackEvent('email_sent');
       loadData();
     } catch (err) {
       console.error('Send failed:', err);
@@ -338,6 +361,7 @@ export default function EmailPage() {
   };
 
   const handleSendDraft = async (campaign: any) => {
+    if (!canEmail) return;
     const lead = leads.find(l => l.id === campaign.leadId);
     if (!lead) return;
     try {
@@ -361,7 +385,8 @@ export default function EmailPage() {
           body: bodyHtml,
           leadId: campaign.leadId,
           campaignId: campaign.id,
-          emailApiKey: useStore.getState().resendKey
+          emailApiKey: useStore.getState().resendKey,
+          via,
         }),
       });
 
@@ -411,14 +436,33 @@ export default function EmailPage() {
           <h1 className="email-title">Email Outreach</h1>
           <p className="email-subtitle">Manage AI-generated follow-ups and campaigns.</p>
         </div>
-        <button
-          onClick={() => setShowCompose(!showCompose)}
-          className="btn-primary"
-          style={{ opacity: showCompose ? 0.7 : 1 }}
-        >
-          {showCompose ? <><X size={16} /> Close</> : <><Plus size={16} /> Compose</>}
-        </button>
+        {canEmail ? (
+          <button
+            onClick={() => setShowCompose(!showCompose)}
+            className="btn-primary"
+            style={{ opacity: showCompose ? 0.7 : 1 }}
+          >
+            {showCompose ? <><X size={16} /> Close</> : <><Plus size={16} /> Compose</>}
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate('/dashboard/billing')}
+            className="btn-primary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Lock size={16} /> Unlock with Pro
+          </button>
+        )}
       </div>
+
+      {!canEmail && (
+        <div style={{ marginBottom: '20px' }}>
+          <UpgradePrompt
+            feature="emailOutreach"
+            description="Send AI-drafted follow-ups, drip campaigns, and track opens and replies — all from your own inbox. Available on Pro."
+          />
+        </div>
+      )}
 
       <div className="stat-grid">
         {statCards.map(({ label, value, icon: Icon, color }) => (
@@ -477,6 +521,9 @@ export default function EmailPage() {
           handleAiDraft={handleAiDraft}
           handleSaveDraft={handleSaveDraft}
           handleSend={handleSend}
+          via={via}
+          setVia={setVia}
+          integrations={integrations}
         />
       )}
 

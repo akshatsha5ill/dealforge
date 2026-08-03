@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -9,6 +10,14 @@ export default function DashboardLayout() {
   useAutoBackup();
   const error = useStore((state) => state.error);
   const clearError = useStore((state) => state.clearError);
+  const isAuthenticated = useStore((state) => state.isAuthenticated);
+  const fetchSubscription = useStore((state) => state.fetchSubscription);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchSubscription();
+    }
+  }, [isAuthenticated, fetchSubscription]);
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
       <Sidebar />

@@ -6,6 +6,7 @@ import { scoreLead } from '../../services/ai/ai-service';
 import { useStore } from '../../store';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { toast } from '../../components/common/Toast';
+import { trackEvent } from '../../services/usage-analytics';
 
 const stages = ['Discovery', 'Demo', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
 
@@ -75,6 +76,7 @@ export default function LeadsPage() {
       
       if (data.score && data.score.score) {
         const newScore = data.score.score;
+        trackEvent('lead_rescored');
         await db.leads.update(lead.id, { score: newScore });
         setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, score: newScore } : l));
       }

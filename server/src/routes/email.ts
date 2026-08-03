@@ -1,9 +1,9 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { sendDraft } from '../services/email-service.js';
+import { sendDraft, sendViaGmail, sendViaOutlook } from '../services/email-service.js';
+import { getValidAccessToken } from '../services/email-oauth.js';
 import { AIFactory } from '../services/ai-providers.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { config } from '../config.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 
 // Re-export for any existing imports
@@ -20,7 +20,8 @@ const sendSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
   body: z.string().min(1, "Body is required"),
   campaignId: z.string().optional(),
-  emailApiKey: z.string().min(1, "Missing Email API key")
+  emailApiKey: z.string().min(1, "Missing Email API key").optional(),
+  via: z.enum(['resend', 'gmail', 'outlook']).optional(),
 });
 
 
@@ -29,11 +30,12 @@ router.post(
   validateRequest({ body: sendSchema }),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> => {
     try {
-      const { to, subject, body, campaignId } = req.body;
+      const { to, subject, body, campaignId, via = 'resend' } = req.body;
       const emailApiKey = req.body.emailApiKey;
       delete req.body.emailApiKey;
+      delete req.body.via;
       const uid = req.user?.uid;
-      
+
       let finalBody = body;
       
       if (campaignId && uid) {
@@ -52,8 +54,19 @@ router.post(
         const pixel = `<img src="${trackingBase}/open/${campaignId}?uid=${uid}" width="1" height="1" style="display:none;" />`;
         finalBody = `${finalBody}${pixel}`;
       }
-      
-      const data = await sendDraft(to, subject, finalBody, { apiKey: emailApiKey });
+
+      let data;
+      if (via === 'gmail' || via === 'outlook') {
+        if (!uid) {
+          throw new AppError('Unauthorized', 401);
+        }
+        const { accessToken } = await getValidAccessToken(uid, via);
+        data = via === 'gmail'
+          ? await sendViaGmail(accessToken, to, subject, finalBody)
+          : await sendViaOutlook(accessToken, to, subject, finalBody);
+      } else {
+        data = await sendDraft(to, subject, finalBody, { apiKey: emailApiKey });
+      }
       return res.status(200).json({ status: "success", data });
     } catch (error) {
       next(error);
@@ -101,32 +114,5 @@ router.post(
     }
   }
 );
-
-router.get('/oauth/:provider', (req: Request, res: Response) => {
-  const provider = req.params.provider;
-  const redirectUrl = req.query.redirect as string || `${config.clientUrl}/settings`;
-
-  // Validate redirect URL to prevent open redirect
-  let parsedRedirect: URL;
-  try {
-    parsedRedirect = new URL(redirectUrl);
-  } catch {
-    return res.redirect(`${config.clientUrl}/settings`);
-  }
-  const allowedHosts = [new URL(config.clientUrl).hostname, 'localhost', '127.0.0.1'];
-  if (!allowedHosts.includes(parsedRedirect.hostname)) {
-    return res.redirect(`${config.clientUrl}/settings`);
-  }
-
-  // In a real implementation, this would redirect to Google/Microsoft OAuth URL
-  // Here we simulate the successful OAuth callback by redirecting back with success params
-  const email = `user@${provider === 'gmail' ? 'gmail.com' : 'outlook.com'}`;
-  const callbackUrl = new URL(redirectUrl);
-  callbackUrl.searchParams.set('oauth_success', 'true');
-  callbackUrl.searchParams.set('provider', provider);
-  callbackUrl.searchParams.set('email', email);
-
-  res.redirect(302, callbackUrl.toString());
-});
 
 export default router;

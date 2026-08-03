@@ -1,35 +1,47 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Video, Users, Mail, ArrowRight } from 'lucide-react';
+import { TrendingUp, Video, Users, Mail, ArrowRight, Zap } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from 'recharts';
 import { db } from '../../services/local-db/db';
+import { useStore } from '../../store';
+import { getMonthlyAnalyzedCount } from '../../services/usage';
+import { getPlan } from '../../services/feature-gate';
+import { getEffectiveMeetingLimit, initReferrals } from '../../services/referral';
 import { Meeting } from '../../types';
 
 import { buildMeetingTrendData, buildPipelineData } from '../../utils/analytics';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const plan = useStore((state) => state.subscription?.plan);
   const [stats, setStats] = useState({ meetings: 0, leads: 0, deals: 0, emails: 0 });
   const [recentMeetings, setRecentMeetings] = useState<Meeting[]>([]);
   const [meetingTrendData, setMeetingTrendData] = useState<any[]>([]);
   const [pipelineData, setPipelineData] = useState<any[]>([]);
+  const [monthlyUsed, setMonthlyUsed] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [meetings, leads, deals, emails] = await Promise.all([
+      const [meetings, leads, deals, emails, used] = await Promise.all([
         db.meetings.toArray(),
         db.leads.toArray(),
         db.deals.toArray(),
         db.email_campaigns.toArray(),
+        getMonthlyAnalyzedCount(),
       ]);
       setStats({ meetings: meetings.length, leads: leads.length, deals: deals.length, emails: emails.length });
       setRecentMeetings(meetings.slice(-5).reverse());
       setMeetingTrendData(buildMeetingTrendData(meetings));
       setPipelineData(buildPipelineData(deals));
+      setMonthlyUsed(used);
+      await initReferrals();
     };
     fetchData();
   }, []);
 
+  const currentPlan = getPlan(plan);
+  const meetingLimit = getEffectiveMeetingLimit(currentPlan);
+  const isFree = currentPlan === 'free';
   const statCards = [
     { label: 'Total Meetings', value: stats.meetings, icon: Video, color: 'var(--accent-primary)' },
     { label: 'Active Leads', value: stats.leads, icon: Users, color: 'var(--success)' },
@@ -43,6 +55,39 @@ export default function DashboardPage() {
         <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '4px' }}>Dashboard</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Welcome back. Here's your sales overview.</p>
       </div>
+
+      {/* Free plan usage banner */}
+      {isFree && meetingLimit !== null && (
+        <div className="ds-panel" style={{ padding: '20px 24px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', border: '1px solid rgba(168, 119, 20, 0.35)' }}>
+          <div style={{ flex: 1, minWidth: '220px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Free plan — {monthlyUsed}/{meetingLimit} meetings analyzed this month
+              </span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                {monthlyUsed >= meetingLimit ? 'Limit reached' : `${meetingLimit - monthlyUsed} remaining`}
+              </span>
+            </div>
+            <div style={{ height: '6px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '3px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  width: `${Math.min(100, (monthlyUsed / meetingLimit) * 100)}%`,
+                  backgroundColor: monthlyUsed >= meetingLimit ? 'var(--danger)' : 'var(--secondary)',
+                  borderRadius: '3px',
+                  transition: 'width 0.3s ease',
+                }}
+              />
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/dashboard/billing')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 18px', backgroundColor: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+          >
+            <Zap size={14} /> Upgrade for Unlimited
+          </button>
+        </div>
+      )}
 
       {/* Stat Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '30px' }}>

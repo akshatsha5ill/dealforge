@@ -8,9 +8,15 @@ import authRoutes from './routes/auth.js';
 import zoomRoutes from './routes/zoom.js';
 import aiRoutes from './routes/ai.js';
 import emailRoutes from './routes/email.js';
+import emailOAuthRoutes from './routes/email-oauth.js';
 import trackingRoutes from './routes/tracking.js';
 import billingRoutes from './routes/billing.js';
+import referralRoutes from './routes/referrals.js';
+import apiKeyRoutes from './routes/api-keys.js';
+import syncRoutes from './routes/sync.js';
+import publicApiRoutes from './routes/public-api.js';
 import { verifyAuth } from './middleware/auth.js';
+import { requirePlan } from './middleware/plan.js';
 import requestId from './middleware/requestId.js';
 import sanitize from './middleware/sanitize.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -105,6 +111,40 @@ const billingLimiter = rateLimit({
   message: { error: 'Too many billing requests, please try again later.' }
 });
 
+const referralLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many referral requests, please try again later.' }
+});
+
+const apiKeyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many API key requests, please try again later.' }
+});
+
+const syncLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Sync rate limit exceeded. Please wait before syncing again.' }
+});
+
+const publicApiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req.headers['x-api-key'] as string) || req.ip || 'unknown',
+  validate: { ipAddress: false },
+  message: { error: 'API rate limit exceeded. Please slow down your requests.' }
+});
+
 const requestLogger = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -124,9 +164,14 @@ app.use(requestLogger);
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/zoom', zoomRoutes);
 app.use('/api/billing', verifyAuth, billingLimiter, billingRoutes);
+app.use('/api/referrals', verifyAuth, referralLimiter, referralRoutes);
 app.use('/api/tracking', trackingLimiter, trackingRoutes);
 app.use('/api/ai', verifyAuth, aiLimiter, aiRoutes);
-app.use('/api/email', verifyAuth, emailLimiter, emailRoutes);
+app.use('/api/email/oauth', billingLimiter, emailOAuthRoutes);
+app.use('/api/email', verifyAuth, requirePlan('pro'), emailLimiter, emailRoutes);
+app.use('/api/api-keys', verifyAuth, apiKeyLimiter, apiKeyRoutes);
+app.use('/api/sync', verifyAuth, requirePlan('pro'), syncLimiter, syncRoutes);
+app.use('/api/v1', publicApiLimiter, publicApiRoutes);
 
 app.get('/api', (req, res) => {
   res.status(200).json({ message: 'API is running', version: '1.0.0' });
@@ -154,10 +199,9 @@ app.get('/zoomverify/verifyzoom.html', (req, res) => {
   res.send(process.env.ZOOM_VERIFY_TOKEN || 'zoomverify token not configured');
 });
 
-app.use(errorHandler);
-
 if (config.isProd && process.env.SENTRY_DSN) {
   Sentry.setupExpressErrorHandler(app);
 }
+app.use(errorHandler);
 
 export { app };

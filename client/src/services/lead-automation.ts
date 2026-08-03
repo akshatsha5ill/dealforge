@@ -44,14 +44,11 @@ class LeadAutomationService {
     }));
     
     await db.leads.bulkPut(leadRecords);
-    console.log(`Successfully auto-generated ${leadRecords.length} leads.`);
   }
 
   handleMeetingEnded = async (data: { meetingId: string }) => {
     const { meetingId } = data;
     if (!meetingId) return;
-    
-    console.log(`Auto-processing meeting ${meetingId} for leads...`);
     
     const storeState = useStore.getState();
     const apiKey = storeState.geminiKey || storeState.openAiKey || storeState.anthropicKey;
@@ -98,7 +95,6 @@ class LeadAutomationService {
       };
       
       await db.leads.add(newLead);
-      console.log(`Auto-created lead from participant: ${newLead.name}`);
     } catch (err: any) {
       console.error('Failed to auto-create lead from participant:', err);
     }
@@ -112,7 +108,6 @@ class LeadAutomationService {
       socket.on('meeting_ended', this.handleMeetingEnded);
       socket.on('participant_joined', this.handleParticipantJoined);
       this.isSubscribed = true;
-      console.log('Lead Automation Service started in background.');
     } else {
       console.warn('Lead Automation Service could not start: WebSocket not initialized.');
     }
@@ -127,7 +122,6 @@ class LeadAutomationService {
       socket.off('participant_joined', this.handleParticipantJoined);
     }
     this.isSubscribed = false;
-    console.log('Lead Automation Service stopped.');
   }
 }
 

@@ -13,8 +13,6 @@ class DripCampaignWorker {
   async processCampaignStep(campaign: any, now: number) {
     if (!campaign.nextRunAt || campaign.nextRunAt > now) return;
 
-    console.log(`Processing drip campaign ${campaign.id} for lead ${campaign.leadId}`);
-    
     const lead = await db.leads.get(campaign.leadId);
     if (!lead || !lead.email) {
       await db.drip_campaigns.update(campaign.id, { status: 'error', error: 'Lead not found or no email' });
@@ -124,14 +122,12 @@ class DripCampaignWorker {
       }
     }, CHECK_INTERVAL_MS);
     
-    console.log('Drip Campaign Worker started in background.');
   }
 
   stop() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log('Drip Campaign Worker stopped.');
     }
   }
 }

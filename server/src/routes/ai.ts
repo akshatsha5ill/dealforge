@@ -3,7 +3,9 @@ import { z } from 'zod';
 import { validateRequest } from 'zod-express-middleware';
 import { analyzeMeeting } from '../services/ai-service.js';
 import { AIFactory } from '../services/ai-providers.js';
+import { recordAnalysisUsage } from '../services/usage-service.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { attachPlan, enforceAiModelAccess, enforceAnalysisLimit } from '../middleware/plan.js';
 
 const router = express.Router();
 
@@ -20,6 +22,9 @@ const analyzeSchema = z.object({
 
 router.post(
   '/analyze', 
+  attachPlan(),
+  enforceAiModelAccess,
+  enforceAnalysisLimit(),
   validateRequest({ body: analyzeSchema }),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> => {
     try {
@@ -36,6 +41,9 @@ router.post(
       }
 
       const analysis = await analyzeMeeting(transcript, effectiveModel, apiKey);
+
+      // Track usage for free-tier limit enforcement (best-effort, deduped by meetingId)
+      await recordAnalysisUsage(uid, meetingId);
 
       return res.status(200).json({
         status: "success",
@@ -59,6 +67,8 @@ const scoreSchema = z.object({
 
 router.post(
   '/score', 
+  attachPlan(),
+  enforceAiModelAccess,
   validateRequest({ body: scoreSchema }),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> => {
     try {

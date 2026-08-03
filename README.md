@@ -5,10 +5,13 @@ AI-powered Zoom Marketplace application for sales meeting intelligence, lead man
 ## Features
 
 - **Real-time Transcription** — Zoom RTMS integration for live meeting transcription
+- **Manual Transcript Mode** — Paste or upload transcripts (.txt/.srt/.vtt) from any meeting source, no Zoom required
 - **AI Analysis** — Automatic summarization, action items, and sentiment analysis (BYOK)
 - **Lead Management** — Auto-create leads from meeting participants, scoring, pipeline tracking
 - **Email Outreach** — Automated drip campaigns, email drafting with AI
 - **Analytics Dashboard** — Meeting stats, conversion metrics, pipeline visualization
+- **Referral Program** — Share a code, both sides get rewards (+1 meeting/month for free users, 1 month free for Pro)
+- **API Access (Pro)** — Read-only API (`x-api-key`) to export meeting summaries, action items, and lead scores to your CRM. Opt-in sync sends derived data only — transcripts never leave your device
 - **Zoom In-Meeting Panel** — Live suggestions and notes without leaving Zoom
 
 ## Tech Stack
@@ -19,13 +22,19 @@ AI-powered Zoom Marketplace application for sales meeting intelligence, lead man
 | Backend | Node.js, Express, TypeScript, Socket.io |
 | Auth | Firebase Authentication |
 | AI | OpenAI, Anthropic, Google Gemini (BYOK) |
-| Email | Resend |
+| Email | Resend, Gmail (OAuth), Outlook (Microsoft Graph OAuth) |
 | Payments | Dodo Payments |
 | Database | IndexedDB (client-side), optional Redis |
 
 ## Architecture
 
 Privacy-first design — sensitive data stored client-side in IndexedDB. Backend acts as a stateless relay with 24h temporary buffer.
+
+Works with Zoom via the in-meeting panel, or standalone — paste or upload any transcript to get the same AI analysis.
+
+Referrals: open the app with `?ref=DF-XXXXXXXX` to claim a referral code. Free users get +1 meeting analysis/month for 3 months per referral; Pro users get 1 month free credit. Codes are claimed server-side (Firestore, fails open), with benefits enforced in both the client limits and the server-side analysis limit middleware.
+
+API Access: Pro users can generate read-only API keys in Settings → API Access and enable derived-data sync (summaries, action items, lead scores — never transcripts). Endpoints: `GET /api/v1/meetings`, `GET /api/v1/meetings/:id`, `GET /api/v1/leads`, `GET /api/v1/deals`, authenticated with the `x-api-key` header (60 req/min).
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
@@ -102,6 +111,7 @@ npm run build        # Build client for production
 │   │   ├── services/       # Business logic
 │   │   ├── store/          # Zustand state
 │   │   ├── hooks/          # Custom hooks
+│   │   ├── utils/          # Utilities (transcript parser, etc.)
 │   │   └── crypto/         # Client-side encryption
 │   └── ...
 ├── server/                 # Express backend
@@ -111,6 +121,9 @@ npm run build        # Build client for production
 │   │   ├── middleware/      # Express middleware
 │   │   └── utils/          # Utilities
 │   └── ...
+├── docs/
+│   ├── zoom-marketplace/   # Zoom Marketplace submission package
+│   └── blog/               # SEO blog posts (markdown, frontmatter-ready)
 └── ...
 ```
 

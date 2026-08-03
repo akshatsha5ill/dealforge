@@ -11,13 +11,78 @@ import { AppError } from '../middleware/errorHandler.js';
 import log from '../utils/logger.js';
 import zoomRTMS from '../services/zoom-rtms.js';
 import transcriptAnalysisPipeline from '../services/transcript-analysis-pipeline.js';
+import { encrypt, decrypt } from '../utils/crypto.js';
 
 const router = express.Router();
 
+const zoomStartSchema = z.object({
+  redirect: z.string().optional(),
+});
+
+router.post('/oauth/start', verifyAuth, validateRequest({ body: zoomStartSchema }), (req: AuthRequest, res: Response): void => {
+  const { clientId, redirectUri } = config.zoom;
+  if (!clientId) {
+    res.status(500).json({ error: 'Zoom OAuth not configured' });
+    return;
+  }
+
+  const rawRedirect = (req.body as { redirect?: string }).redirect;
+  if (rawRedirect) {
+    try {
+      const parsed = new URL(rawRedirect);
+      const allowedHosts = new Set([new URL(config.clientUrl).hostname, 'localhost', '127.0.0.1']);
+      if (!allowedHosts.has(parsed.hostname)) {
+        res.status(400).json({ error: 'Invalid redirect URL' });
+        return;
+      }
+    } catch {
+      res.status(400).json({ error: 'Invalid redirect URL' });
+      return;
+    }
+  }
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'meeting:read:admin meeting:write user:read',
+    state: encrypt(JSON.stringify({ uid: req.user!.uid, redirect: rawRedirect })),
+  });
+  res.status(200).json({ url: `https://zoom.us/oauth/authorize?${params.toString()}` });
+});
+
+router.get('/oauth/status', verifyAuth, async (req: AuthRequest, res: Response): Promise<void> => {
+  const uid = req.user!.uid;
+  try {
+    const doc = await getFirebaseFirestore().collection('users').doc(uid).get();
+    const data = doc.data();
+    res.status(200).json({
+      linked: !!data?.zoomLinked,
+      zoomUserId: data?.zoomUserId || null,
+    });
+  } catch (err) {
+    log.error('Failed to fetch zoom link status', { error: err, uid });
+    res.status(500).json({ error: 'Failed to fetch zoom link status' });
+  }
+});
+
 router.get('/oauth/callback', async (req: Request, res: Response, next: express.NextFunction): Promise<unknown> => {
-  const { code } = req.query;
+  const { code, state } = req.query;
   if (!code) {
     return next(new AppError('Missing authorization code', 400));
+  }
+
+  // Identify the user either from the state param (browser redirect flow) or an auth header
+  let stateUid: string | null = null;
+  let stateRedirect: string | undefined;
+  if (typeof state === 'string' && state) {
+    try {
+      const parsed = JSON.parse(decrypt(state)) as { uid?: string; redirect?: string };
+      stateUid = parsed.uid || null;
+      stateRedirect = parsed.redirect;
+    } catch {
+      return next(new AppError('Invalid OAuth state', 400));
+    }
   }
 
   const { clientId, clientSecret, redirectUri } = config.zoom;
@@ -64,23 +129,35 @@ router.get('/oauth/callback', async (req: Request, res: Response, next: express.
       return next(new AppError((tokenRes.reason || tokenRes.error) as string, 400));
     }
 
-    // Persist tokens to the authenticated user's Firestore document
+    // Persist tokens to the user's Firestore document
     const authHeader = req.headers.authorization;
+    let uid: string | null = stateUid;
     if (authHeader?.startsWith('Bearer ')) {
       try {
         const idToken = authHeader.split('Bearer ')[1];
         const decoded = await getFirebaseAuth().verifyIdToken(idToken);
-        await getFirebaseFirestore().collection('users').doc(decoded.uid).set({
-          zoomLinked: true,
-          zoomAccessToken: tokenRes.access_token,
-          zoomRefreshToken: tokenRes.refresh_token,
-          zoomTokenExpiresAt: tokenRes.expires_in
-            ? Date.now() + (tokenRes.expires_in as number) * 1000
-            : null,
-        }, { merge: true });
+        uid = decoded.uid;
       } catch {
-        // Token exchange succeeded but persistence failed — still return the token info
+        // fall through to state-based uid
       }
+    }
+
+    if (uid) {
+      await getFirebaseFirestore().collection('users').doc(uid).set({
+        zoomLinked: true,
+        zoomAccessToken: tokenRes.access_token,
+        zoomRefreshToken: tokenRes.refresh_token,
+        zoomTokenExpiresAt: tokenRes.expires_in
+          ? Date.now() + (tokenRes.expires_in as number) * 1000
+          : null,
+      }, { merge: true });
+    }
+
+    // Browser redirect flow: send the user back to the client
+    if (stateUid) {
+      const base = stateRedirect || `${config.clientUrl}/settings`;
+      const sep = base.includes('?') ? '&' : '?';
+      return res.redirect(302, `${base}${sep}zoom_linked=true`);
     }
 
     return res.json({

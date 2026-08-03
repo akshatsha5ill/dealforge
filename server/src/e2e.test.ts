@@ -2,20 +2,30 @@ import { describe, it, expect, vi } from 'vitest';
 import request from 'supertest';
 import { app } from './app.js';
 
-vi.mock('./services/firebase-admin.js', () => ({
-  getFirebaseAuth: () => ({
-    verifyIdToken: vi.fn().mockResolvedValue({ uid: 'e2e-user', email: 'e2e@example.com' }),
-  }),
-  getFirebaseFirestore: () => ({
-    collection: () => ({
-      doc: () => ({
-        get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ plan: 'pro', emailsSent: 0 }) }),
-        set: vi.fn().mockResolvedValue({}),
-        update: vi.fn().mockResolvedValue({}),
+vi.mock('./services/firebase-admin.js', () => {
+  const subscriptionDoc = () => ({
+    get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ plan: 'pro', emailsSent: 0 }) }),
+    set: vi.fn().mockResolvedValue({}),
+    update: vi.fn().mockResolvedValue({}),
+  });
+  return {
+    getFirebaseAuth: () => ({
+      verifyIdToken: vi.fn().mockResolvedValue({ uid: 'e2e-user', email: 'e2e@example.com' }),
+    }),
+    getFirebaseFirestore: () => ({
+      collection: () => ({
+        doc: () => ({
+          get: vi.fn().mockResolvedValue({ exists: true, data: () => ({ plan: 'pro', emailsSent: 0 }) }),
+          set: vi.fn().mockResolvedValue({}),
+          update: vi.fn().mockResolvedValue({}),
+          collection: () => ({
+            doc: () => subscriptionDoc(),
+          }),
+        }),
       }),
     }),
-  }),
-}));
+  };
+});
 
 describe('E2E User Flow', () => {
   it('allows a user to check auth and access ai routes', async () => {

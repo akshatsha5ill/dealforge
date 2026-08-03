@@ -1,14 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Lock } from 'lucide-react';
 import { dealsDB } from '../../services/local-db/deals';
 import { STAGES, formatCurrency } from '../../components/pipeline/PipelineCard';
 import { PipelineColumn } from '../../components/pipeline/PipelineColumn';
 import { NewDealModal, DealFormData } from '../../components/pipeline/NewDealModal';
+import { useStore } from '../../store';
+import { canUseFeature } from '../../services/feature-gate';
+import UpgradePrompt from '../../components/common/UpgradePrompt';
+import { trackEvent } from '../../services/usage-analytics';
 import { Deal } from '../../types';
 import { confirm } from '../../components/common/ConfirmDialog';
 import '../../components/pipeline/Pipeline.css';
 
 export default function PipelinePage() {
+  const plan = useStore((state) => state.subscription?.plan);
+  const readOnly = !canUseFeature(plan, 'pipeline');
   const [deals, setDeals] = useState<Deal[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -59,6 +65,7 @@ export default function PipelinePage() {
   const handleDrop = async (e: React.DragEvent, stageId: string, targetDealId?: string) => {
     e.preventDefault();
     setDragOverStage(null);
+    if (readOnly) return;
     const dealId = e.dataTransfer.getData('text/plain');
     if (!dealId || dealId === targetDealId) return;
 
@@ -114,6 +121,7 @@ export default function PipelinePage() {
   };
 
   const moveDeal = async (dealId: string, direction: 'forward' | 'backward') => {
+    if (readOnly) return;
     const deal = deals.find((d) => d.id === dealId);
     if (!deal) return;
     const stageIds = STAGES.map((s) => s.id);
@@ -125,6 +133,7 @@ export default function PipelinePage() {
   };
 
   const deleteDeal = async (dealId: string) => {
+    if (readOnly) return;
     const confirmed = await confirm('Delete Deal', 'Are you sure you want to delete this deal? This cannot be undone.');
     if (!confirmed) return;
     await dealsDB.delete(dealId);
@@ -132,6 +141,7 @@ export default function PipelinePage() {
   };
 
   const handleSubmitModal = async (form: DealFormData) => {
+    if (readOnly) return;
     const stageCount = deals.filter(d => d.stage === form.stage).length;
     await dealsDB.put({
       id: crypto.randomUUID(),
@@ -146,6 +156,7 @@ export default function PipelinePage() {
       updatedAt: new Date().toISOString(),
       order: stageCount,
     });
+    trackEvent('deal_created');
     setShowModal(false);
     loadDeals();
   };
@@ -157,13 +168,33 @@ export default function PipelinePage() {
           <h1 className="pipeline-title">Pipeline</h1>
           <p className="pipeline-subtitle">Track and manage your deals through each stage.</p>
         </div>
-        <button
-          className="add-btn"
-          onClick={() => setShowModal(true)}
-        >
-          <Plus size={16} /> New Deal
-        </button>
+        {readOnly ? (
+          <button
+            className="add-btn"
+            style={{ opacity: 0.6, cursor: 'not-allowed' }}
+            onClick={() => trackEvent('upgrade_prompt_clicked')}
+          >
+            <Lock size={16} /> New Deal
+          </button>
+        ) : (
+          <button
+            className="add-btn"
+            onClick={() => setShowModal(true)}
+          >
+            <Plus size={16} /> New Deal
+          </button>
+        )}
       </div>
+
+      {readOnly && (
+        <div style={{ marginBottom: '20px' }}>
+          <UpgradePrompt
+            feature="pipeline"
+            description="View your pipeline in read-only mode. Upgrade to Pro to create deals, drag-and-drop between stages, and track probability."
+            compact
+          />
+        </div>
+      )}
 
       <div className="summary-row">
         <div className="summary-card">
@@ -191,6 +222,7 @@ export default function PipelinePage() {
             stage={stage}
             deals={dealsByStage[stage.id] || []}
             isDragOver={dragOverStage === stage.id}
+            readOnly={readOnly}
             draggedId={draggedId}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
