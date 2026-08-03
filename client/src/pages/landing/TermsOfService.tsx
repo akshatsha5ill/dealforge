@@ -13,7 +13,7 @@ export default function TermsOfService() {
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>Terms of Service</h1>
-      <p style={styles.updated}>Last updated: {new Date().toLocaleDateString()}</p>
+      <p style={styles.updated}>Last updated: August 3, 2026</p>
 
       <h2 style={styles.h2}>1. Acceptance of Terms</h2>
       <p style={styles.p}>
@@ -148,7 +148,19 @@ export default function TermsOfService() {
         violation of any rights of a third party.
       </p>
 
-      <h2 style={styles.h2}>16. Governing Law</h2>
+      <h2 style={styles.h2}>16. Zoom App Addendum</h2>
+      <p style={styles.p}>
+        If you install DealForge through the Zoom App Marketplace, the following additional terms apply:
+      </p>
+      <ul style={{ paddingLeft: '24px', marginTop: '8px' }}>
+        <li style={styles.li}><strong style={styles.strong}>Zoom's Terms:</strong> your use of Zoom's platform is governed by Zoom's own Terms of Service and policies. DealForge's access to Zoom data is limited to the OAuth scopes you authorize (meeting:read:admin, meeting:write, user:read).</li>
+        <li style={styles.li}><strong style={styles.strong}>Data handling:</strong> we handle Zoom user data in accordance with Section 8 (Zoom Marketplace Compliance) of our <a href="/privacy" style={{ color: 'var(--accent-primary)' }}>Privacy Policy</a>. Transcript content is relayed through a transient in-memory buffer and never written to persistent storage. Meeting metadata is stored only in your browser.</li>
+        <li style={styles.li}><strong style={styles.strong}>Deauthorization:</strong> if you uninstall DealForge from Zoom, we immediately delete your Zoom tokens and connection data. We comply with Zoom's Data Compliance API requirements.</li>
+        <li style={styles.li}><strong style={styles.strong}>No sale of Zoom data:</strong> we do not sell, rent, or share Zoom user data with any third party for advertising, marketing, or any purpose unrelated to providing the Service to you.</li>
+        <li style={styles.li}><strong style={styles.strong}>Recording consent:</strong> as stated in Section 4, you are solely responsible for obtaining consent from meeting participants before enabling live transcription.</li>
+      </ul>
+
+      <h2 style={styles.h2}>17. Governing Law</h2>
       <p style={styles.p}>
         These Terms are governed by the laws of the jurisdiction in which DealForge is established, without regard
         to conflict-of-law principles. Any disputes shall be resolved in the courts of that jurisdiction, and you
@@ -156,14 +168,14 @@ export default function TermsOfService() {
         rights that cannot be waived under applicable consumer protection law.
       </p>
 
-      <h2 style={styles.h2}>17. Changes to These Terms</h2>
+      <h2 style={styles.h2}>18. Changes to These Terms</h2>
       <p style={styles.p}>
         We may update these Terms from time to time. Material changes will be reflected by an updated "Last
         updated" date at the top of this page and, where appropriate, notified via the app or email. Continued use
         of the Service after changes take effect constitutes acceptance of the revised Terms.
       </p>
 
-      <h2 style={styles.h2}>18. Contact</h2>
+      <h2 style={styles.h2}>19. Contact</h2>
       <p style={styles.p}>
         Questions about these Terms: <strong style={styles.strong}>support@dealforge.com</strong>.
       </p>

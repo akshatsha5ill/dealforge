@@ -13,7 +13,7 @@ export default function PrivacyPolicy() {
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>Privacy Policy</h1>
-      <p style={styles.updated}>Last updated: {new Date().toLocaleDateString()}</p>
+      <p style={styles.updated}>Last updated: August 3, 2026</p>
 
       <h2 style={styles.h2}>1. Introduction</h2>
       <p style={styles.p}>
@@ -127,7 +127,49 @@ export default function PrivacyPolicy() {
         there is no server-side copy to request deletion of.
       </p>
 
-      <h2 style={styles.h2}>8. Security</h2>
+      <h2 style={styles.h2}>8. Zoom Marketplace Compliance</h2>
+      <p style={styles.p}>
+        DealForge is available as a Zoom Marketplace application. This section addresses Zoom's data handling
+        requirements specifically.
+      </p>
+
+      <h3 style={styles.h3}>8.1 Zoom Data We Access</h3>
+      <p style={styles.p}>When you install DealForge from the Zoom Marketplace and authorize it, we request these scopes:</p>
+      <ul style={{ paddingLeft: '24px', marginTop: '8px' }}>
+        <li style={styles.li}><strong style={styles.strong}>meeting:read:admin</strong> — to read meeting metadata (topic, participants, start/end time) for your dashboard.</li>
+        <li style={styles.li}><strong style={styles.strong}>meeting:write</strong> — to initiate and manage real-time transcription (RTMS) sessions during your meetings.</li>
+        <li style={styles.li}><strong style={styles.strong}>user:read</strong> — to identify your Zoom account for linking and to process deauthorization requests.</li>
+      </ul>
+      <p style={styles.p}>
+        We do <strong style={styles.strong}>not</strong> access Zoom cloud recordings, chat messages, contacts, or any
+        data beyond what the scopes above permit.
+      </p>
+
+      <h3 style={styles.h3}>8.2 How We Handle Zoom Data</h3>
+      <ul style={{ paddingLeft: '24px', marginTop: '8px' }}>
+        <li style={styles.li}><strong style={styles.strong}>Transcript content</strong> from RTMS is relayed through an in-memory buffer (never written to disk or database) and purged within 24 hours.</li>
+        <li style={styles.li}><strong style={styles.strong}>Meeting metadata</strong> (title, time, participant names) is stored locally in your browser's IndexedDB — never on our servers.</li>
+        <li style={styles.li}><strong style={styles.strong}>Zoom OAuth tokens</strong> are encrypted at rest (AES-256-GCM) in our server-side database and are used solely to authenticate API calls on your behalf.</li>
+        <li style={styles.li}>We do <strong style={styles.strong}>not</strong> sell, share, or use Zoom user data for advertising, marketing to third parties, or AI model training.</li>
+      </ul>
+
+      <h3 style={styles.h3}>8.3 Deauthorization &amp; Data Deletion</h3>
+      <p style={styles.p}>
+        When you uninstall DealForge from your Zoom account, Zoom sends a deauthorization webhook to our endpoint.
+        Upon receiving this notification, we immediately:
+      </p>
+      <ul style={{ paddingLeft: '24px', marginTop: '8px' }}>
+        <li style={styles.li}>Delete all stored Zoom OAuth access and refresh tokens for your account.</li>
+        <li style={styles.li}>Delete the Zoom account association from our database.</li>
+        <li style={styles.li}>Confirm compliance with Zoom's Data Compliance API.</li>
+      </ul>
+      <p style={styles.p}>
+        Your locally stored meeting data (transcripts, analyses, leads) in your browser is not affected by
+        deauthorization, since we never stored it server-side. You can delete local data at any time from
+        Settings → Data Management → Delete All Data.
+      </p>
+
+      <h2 style={styles.h2}>9. Security</h2>
       <p style={styles.p}>
         We use industry-standard protections: all traffic is served over TLS (HTTPS); API keys are encrypted on
         your device with AES-256-GCM (PBKDF2, 600K iterations); server-side OAuth tokens are encrypted at rest with
@@ -136,14 +178,14 @@ export default function PrivacyPolicy() {
         concern, contact us at <strong style={styles.strong}>support@dealforge.com</strong>.
       </p>
 
-      <h2 style={styles.h2}>9. Children's Privacy</h2>
+      <h2 style={styles.h2}>10. Children's Privacy</h2>
       <p style={styles.p}>
         DealForge is a business tool intended for professional sales use and is not directed to children under 13
         (or the applicable minimum age in your jurisdiction). We do not knowingly collect personal information
         from children.
       </p>
 
-      <h2 style={styles.h2}>10. International Data Transfers</h2>
+      <h2 style={styles.h2}>11. International Data Transfers</h2>
       <p style={styles.p}>
         Our service providers (Firebase/Google, OpenAI, Anthropic, Gemini, Resend, Dodo) may process data in
         regions outside your country of residence. By using DealForge you consent to such processing, which is
@@ -151,14 +193,45 @@ export default function PrivacyPolicy() {
         contractual clauses and equivalent transfer mechanisms).
       </p>
 
-      <h2 style={styles.h2}>11. Changes to This Policy</h2>
+      <h2 style={styles.h2}>12. Your Rights Under GDPR and CCPA</h2>
+      <p style={styles.p}>
+        Depending on your location, you may have additional rights under data protection laws:
+      </p>
+
+      <h3 style={styles.h3}>For EEA/UK residents (GDPR)</h3>
+      <ul style={{ paddingLeft: '24px', marginTop: '8px' }}>
+        <li style={styles.li}>Right to access, rectify, or erase your personal data.</li>
+        <li style={styles.li}>Right to restrict or object to processing.</li>
+        <li style={styles.li}>Right to data portability (use Settings → Export Data).</li>
+        <li style={styles.li}>Right to withdraw consent at any time.</li>
+        <li style={styles.li}>Right to lodge a complaint with your local supervisory authority.</li>
+      </ul>
+      <p style={styles.p}>
+        Our legal basis for processing your personal data is: (a) your consent (for optional features like analytics),
+        (b) contract performance (to provide the service you signed up for), and (c) legitimate interests (fraud
+        prevention and service improvement).
+      </p>
+
+      <h3 style={styles.h3}>For California residents (CCPA/CPRA)</h3>
+      <ul style={{ paddingLeft: '24px', marginTop: '8px' }}>
+        <li style={styles.li}>Right to know what personal information we collect and how it is used.</li>
+        <li style={styles.li}>Right to delete your personal information.</li>
+        <li style={styles.li}>Right to opt out of the sale or sharing of personal information — <strong style={styles.strong}>we do not sell or share your personal information</strong>.</li>
+        <li style={styles.li}>Right to non-discrimination for exercising your rights.</li>
+      </ul>
+      <p style={styles.p}>
+        To exercise any of these rights, contact us at <strong style={styles.strong}>support@dealforge.com</strong>.
+        We will respond within 30 days (or sooner if required by law).
+      </p>
+
+      <h2 style={styles.h2}>13. Changes to This Policy</h2>
       <p style={styles.p}>
         We may update this Privacy Policy from time to time. Material changes will be reflected by an updated
         "Last updated" date at the top of this page, and, where appropriate, we will notify you via the app.
         Continued use of DealForge after changes take effect constitutes acceptance of the revised policy.
       </p>
 
-      <h2 style={styles.h2}>12. Contact Us</h2>
+      <h2 style={styles.h2}>14. Contact Us</h2>
       <p style={styles.p}>
         Questions, privacy requests, or account deletion requests: <strong style={styles.strong}>support@dealforge.com</strong>.
       </p>
