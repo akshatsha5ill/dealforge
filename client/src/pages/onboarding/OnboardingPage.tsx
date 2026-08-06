@@ -29,17 +29,31 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(true);
   const canEmail = canUseFeature(plan, 'emailOutreach');
 
+  const API_BASE = import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api`
+    : '/api';
+  const [zoomConfigured, setZoomConfigured] = useState(true);
+
   const loadStatus = useCallback(async () => {
     try {
       const token = await auth.currentUser?.getIdToken();
-      const res = await fetch('/api/zoom/oauth/status', {
+      const res = await fetch(`${API_BASE}/zoom/oauth/status`, {
         headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
       });
       if (res.ok) {
         const data = await res.json();
         setZoomStatus({ linked: !!data.linked, zoomUserId: data.zoomUserId || null });
+        setZoomConfigured(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        if (data.error?.toLowerCase().includes('not configured')) {
+          setZoomConfigured(false);
+        }
       }
-    } catch { /* server may be unavailable */ }
+    } catch {
+      // Server unavailable — assume Zoom not configured
+      setZoomConfigured(false);
+    }
 
     try {
       const res = await getEmailIntegrationStatus();
@@ -67,7 +81,7 @@ export default function OnboardingPage() {
     setError('');
     try {
       const token = await auth.currentUser?.getIdToken();
-      const res = await fetch('/api/zoom/oauth/start', {
+      const res = await fetch(`${API_BASE}/zoom/oauth/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         body: JSON.stringify({ redirect: window.location.href }),
@@ -199,16 +213,24 @@ export default function OnboardingPage() {
                       {zoomStatus.zoomUserId && <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>User ID: {zoomStatus.zoomUserId}</p>}
                     </div>
                   </div>
+                ) : !zoomConfigured ? (
+                  <div style={{ padding: '16px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', marginBottom: '24px' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>Zoom integration coming soon</p>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                      You can still analyze meetings by pasting transcripts manually from the dashboard.
+                      We'll notify you when Zoom auto-transcription is available.
+                    </p>
+                  </div>
                 ) : (
                   <button onClick={connectZoom} disabled={connecting === 'zoom'} className="ds-btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
                     <Video size={16} /> {connecting === 'zoom' ? 'Redirecting...' : 'Connect Zoom Account'}
                   </button>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '28px' }}>
-                  <button onClick={() => setStep((s) => s + 1)} className="ds-btn-ghost" style={{ color: 'var(--text-muted)' }}>
+                  <button onClick={() => { setError(''); setStep((s) => s + 1); }} className="ds-btn-ghost" style={{ color: 'var(--text-muted)' }}>
                     Skip for now
                   </button>
-                  <button onClick={() => setStep((s) => s + 1)} className="ds-btn-primary" disabled={!zoomStatus?.linked}>
+                  <button onClick={() => { setError(''); setStep((s) => s + 1); }} className="ds-btn-primary" disabled={!zoomStatus?.linked}>
                     Next <ArrowRight size={16} />
                   </button>
                 </div>
