@@ -7,6 +7,7 @@ import * as Sentry from '@sentry/node';
 import authRoutes from './routes/auth.js';
 import zoomRoutes from './routes/zoom.js';
 import aiRoutes from './routes/ai.js';
+import chatbotRoutes from './routes/chatbot.js';
 import emailRoutes from './routes/email.js';
 import emailOAuthRoutes from './routes/email-oauth.js';
 import trackingRoutes from './routes/tracking.js';
@@ -95,6 +96,14 @@ const aiLimiter = rateLimit({
   message: { error: 'AI rate limit exceeded. Please wait before making another request.' }
 });
 
+const chatbotLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Chat engine rate limit exceeded. Please wait before making another request.' }
+});
+
 const emailLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
@@ -166,6 +175,7 @@ app.use('/api/billing', verifyAuth, billingLimiter, billingRoutes);
 app.use('/api/referrals', verifyAuth, referralLimiter, referralRoutes);
 app.use('/api/tracking', trackingLimiter, trackingRoutes);
 app.use('/api/ai', verifyAuth, aiLimiter, aiRoutes);
+app.use('/api/chatbot', verifyAuth, chatbotLimiter, chatbotRoutes);
 app.use('/api/email/oauth', billingLimiter, emailOAuthRoutes);
 app.use('/api/email', verifyAuth, requirePlan('pro'), emailLimiter, emailRoutes);
 app.use('/api/api-keys', verifyAuth, apiKeyLimiter, apiKeyRoutes);

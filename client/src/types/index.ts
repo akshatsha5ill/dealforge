@@ -122,3 +122,35 @@ export interface Setting {
   key: string;
   value: unknown;
 }
+
+export interface KBDocument {
+  id: string;
+  name: string;
+  type: 'pdf' | 'txt' | 'md' | 'paste';
+  uploadedAt: string;
+  chunkCount: number;
+  sizeBytes: number;
+}
+
+export interface KBChunk {
+  id: string;
+  docId: string;
+  text: string;
+  embedding: number[];
+  index: number;
+}
+
+export interface EmailDraft {
+  id: string;
+  meetingId: string;
+  meetingTopic?: string;
+  email: string;
+  name: string;
+  subject: string;
+  body: string;
+  status: 'draft' | 'sent' | 'error';
+  questionsAsked?: string[];
+  createdAt: string;
+  sentAt?: string;
+  error?: string;
+}

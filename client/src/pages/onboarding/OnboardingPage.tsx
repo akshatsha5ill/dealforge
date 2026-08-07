@@ -1,24 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Video, KeyRound, Mail, CheckCircle, ArrowRight, SkipForward, Lock } from 'lucide-react';
+import { KeyRound, BookOpen, Mail, CheckCircle, ArrowRight, SkipForward, Lock, Upload, FileText, Loader } from 'lucide-react';
 import { db } from '../../services/local-db/db';
 import { useStore } from '../../store';
-import { auth } from '../../services/firebase/config';
 import { encryptKey, EncryptedKey } from '../../crypto/key-vault';
 import { getEmailIntegrationStatus, startEmailOAuth, EmailProvider } from '../../services/email-integration';
 import { canUseFeature } from '../../services/feature-gate';
-
-interface ZoomStatus {
-  linked: boolean;
-  zoomUserId: string | null;
-}
+import { uploadDocument, getAllDocuments } from '../../services/knowledge-base';
+import { KBDocument } from '../../types';
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const plan = useStore((state) => state.subscription?.plan);
+  const openAiKey = useStore((state) => state.openAiKey);
   const setOpenAiKey = useStore((state) => state.setOpenAiKey);
   const [step, setStep] = useState(0);
-  const [zoomStatus, setZoomStatus] = useState<ZoomStatus | null>(null);
   const [integrations, setIntegrations] = useState<string[]>([]);
   const [hasOpenAiKey, setHasOpenAiKey] = useState(false);
   const [keyInput, setKeyInput] = useState('');
@@ -28,33 +24,19 @@ export default function OnboardingPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const canEmail = canUseFeature(plan, 'emailOutreach');
+  const [documents, setDocuments] = useState<KBDocument[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [pasteText, setPasteText] = useState('');
 
-  const API_BASE = import.meta.env.VITE_API_URL
-    ? `${import.meta.env.VITE_API_URL}/api`
-    : '/api';
-  const [zoomConfigured, setZoomConfigured] = useState(true);
+  const loadDocs = useCallback(async () => {
+    try {
+      setDocuments(await getAllDocuments());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load knowledge base documents');
+    }
+  }, []);
 
   const loadStatus = useCallback(async () => {
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      const res = await fetch(`${API_BASE}/zoom/oauth/status`, {
-        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setZoomStatus({ linked: !!data.linked, zoomUserId: data.zoomUserId || null });
-        setZoomConfigured(true);
-      } else {
-        const data = await res.json().catch(() => ({}));
-        if (data.error?.toLowerCase().includes('not configured')) {
-          setZoomConfigured(false);
-        }
-      }
-    } catch {
-      // Server unavailable — assume Zoom not configured
-      setZoomConfigured(false);
-    }
-
     try {
       const res = await getEmailIntegrationStatus();
       setIntegrations(res.integrations.filter((i) => i.connected).map((i) => i.provider));
@@ -70,34 +52,17 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('zoom_linked') === 'true' || params.get('oauth_success') === 'true') {
+    if (params.get('oauth_success') === 'true') {
       window.history.replaceState({}, document.title, window.location.pathname);
       loadStatus();
     }
   }, [loadStatus]);
 
-  const connectZoom = async () => {
-    setConnecting('zoom');
-    setError('');
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      const res = await fetch(`${API_BASE}/zoom/oauth/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ redirect: window.location.href }),
-      });
-      const data = await res.json();
-      if (res.ok && data.url) {
-        window.location.href = data.url;
-      } else {
-        setError(data.error || 'Failed to start Zoom connection');
-      }
-    } catch {
-      setError('Failed to start Zoom connection');
-    } finally {
-      setConnecting(null);
+  useEffect(() => {
+    if (step === 1) {
+      loadDocs();
     }
-  };
+  }, [step, loadDocs]);
 
   const connectEmail = async (provider: EmailProvider) => {
     setConnecting(provider);
@@ -135,14 +100,54 @@ export default function OnboardingPage() {
     }
   };
 
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    setError('');
+    try {
+      const apiKey = openAiKey;
+      if (!apiKey) {
+        setError('Add your AI API key first.');
+        return;
+      }
+      for (const file of Array.from(files)) {
+        await uploadDocument(file, apiKey);
+      }
+      await loadDocs();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload document');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handlePasteUpload = async () => {
+    if (!pasteText.trim()) return;
+    setUploading(true);
+    setError('');
+    try {
+      if (!openAiKey) {
+        setError('Add your AI API key first.');
+        return;
+      }
+      await uploadDocument(pasteText, openAiKey);
+      setPasteText('');
+      await loadDocs();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload pasted text');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const finish = async () => {
     await db.settings.put({ key: 'onboarding_complete', value: true });
     navigate('/dashboard');
   };
 
   const steps = [
-    { label: 'Connect Zoom', icon: Video },
     { label: 'AI API Key', icon: KeyRound },
+    { label: 'Knowledge Base', icon: BookOpen },
     { label: 'Email (Pro)', icon: Mail },
   ];
 
@@ -201,47 +206,9 @@ export default function OnboardingPage() {
 
             {step === 0 && (
               <div>
-                <h1 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Connect Zoom</h1>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6, marginBottom: '24px' }}>
-                  Link your Zoom account so DealForge can record and transcribe your meetings automatically.
-                </p>
-                {zoomStatus?.linked ? (
-                  <div style={{ padding: '16px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--success)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                    <CheckCircle size={20} color="var(--success)" />
-                    <div>
-                      <strong>Zoom connected</strong>
-                      {zoomStatus.zoomUserId && <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>User ID: {zoomStatus.zoomUserId}</p>}
-                    </div>
-                  </div>
-                ) : !zoomConfigured ? (
-                  <div style={{ padding: '16px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px', marginBottom: '24px' }}>
-                    <p style={{ fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>Zoom integration coming soon</p>
-                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                      You can still analyze meetings by pasting transcripts manually from the dashboard.
-                      We'll notify you when Zoom auto-transcription is available.
-                    </p>
-                  </div>
-                ) : (
-                  <button onClick={connectZoom} disabled={connecting === 'zoom'} className="ds-btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-                    <Video size={16} /> {connecting === 'zoom' ? 'Redirecting...' : 'Connect Zoom Account'}
-                  </button>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '28px' }}>
-                  <button onClick={() => { setError(''); setStep((s) => s + 1); }} className="ds-btn-ghost" style={{ color: 'var(--text-muted)' }}>
-                    Skip for now
-                  </button>
-                  <button onClick={() => { setError(''); setStep((s) => s + 1); }} className="ds-btn-primary" disabled={!zoomStatus?.linked}>
-                    Next <ArrowRight size={16} />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {step === 1 && (
-              <div>
                 <h1 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Add your AI API key</h1>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6, marginBottom: '24px' }}>
-                  DealForge uses OpenAI to draft follow-ups, score leads, and analyze meetings. Keys are encrypted locally and never sent to our servers.
+                  DealForge uses OpenAI to answer attendee questions and draft follow-up emails. Keys are encrypted locally and never sent to our servers.
                 </p>
                 {hasOpenAiKey ? (
                   <div style={{ padding: '16px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--success)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
@@ -272,11 +239,78 @@ export default function OnboardingPage() {
                     </button>
                   </div>
                 )}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '28px' }}>
+                  <button onClick={() => setStep((s) => s + 1)} className="ds-btn-primary" disabled={!hasOpenAiKey}>
+                    Next <ArrowRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {step === 1 && (
+              <div>
+                <h1 style={{ fontSize: '22px', fontWeight: 700, marginBottom: '8px' }}>Upload your knowledge base</h1>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6, marginBottom: '24px' }}>
+                  Upload product docs, FAQs, and pricing so the AI can answer attendee questions during live meetings.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+                  <label
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '24px',
+                      backgroundColor: 'var(--bg-secondary)', border: '1px dashed var(--border)', borderRadius: '8px', cursor: 'pointer',
+                    }}
+                  >
+                    <Upload size={20} style={{ color: 'var(--text-muted)' }} />
+                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Drop PDF, TXT, or MD files here or click to browse</span>
+                    <input
+                      type="file"
+                      accept=".pdf,.txt,.md"
+                      multiple
+                      style={{ display: 'none' }}
+                      disabled={uploading}
+                      onChange={(e) => handleFileUpload(e.target.files)}
+                    />
+                  </label>
+
+                  <textarea
+                    className="ds-input"
+                    rows={4}
+                    placeholder="Or paste text (e.g. product overview, pricing page content)"
+                    value={pasteText}
+                    onChange={(e) => setPasteText(e.target.value)}
+                    style={{ resize: 'vertical', fontSize: '13px' }}
+                  />
+                  <button onClick={handlePasteUpload} disabled={uploading || !pasteText.trim()} className="ds-btn-ghost" style={{ border: '1px solid var(--border)', justifyContent: 'center' }}>
+                    {uploading ? <Loader size={14} /> : <Upload size={14} />} {uploading ? 'Uploading...' : 'Upload Pasted Text'}
+                  </button>
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+                    Uploaded documents ({documents.length})
+                  </div>
+                  {documents.length === 0 ? (
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No documents yet. Upload at least one to continue.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {documents.map((doc) => (
+                        <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                          <FileText size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                          <span style={{ flex: 1, fontSize: '13px' }}>{doc.name}</span>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{doc.chunkCount} chunks</span>
+                          <CheckCircle size={15} color="var(--success)" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '28px' }}>
                   <button onClick={() => setStep((s) => s - 1)} className="ds-btn-ghost" style={{ color: 'var(--text-muted)' }}>
                     Back
                   </button>
-                  <button onClick={() => setStep((s) => s + 1)} className="ds-btn-primary" disabled={!hasOpenAiKey}>
+                  <button onClick={() => setStep((s) => s + 1)} className="ds-btn-primary" disabled={documents.length < 1}>
                     Next <ArrowRight size={16} />
                   </button>
                 </div>

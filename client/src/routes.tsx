@@ -19,6 +19,8 @@ const AnalyticsPage = lazy(() => import('./pages/dashboard/AnalyticsPage'));
 const PipelinePage = lazy(() => import('./pages/dashboard/PipelinePage'));
 const EmailPage = lazy(() => import('./pages/dashboard/EmailPage'));
 const BillingPage = lazy(() => import('./pages/dashboard/BillingPage'));
+const KnowledgeBasePage = lazy(() => import('./pages/dashboard/KnowledgeBasePage'));
+const EmailDraftsPage = lazy(() => import('./pages/dashboard/EmailDraftsPage'));
 
 const PrivacyPolicy = lazy(() => import('./pages/landing/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/landing/TermsOfService'));
@@ -66,6 +68,8 @@ export const router = createBrowserRouter([
     errorElement: <ErrorBoundary />,
     children: [
       { index: true, element: <Suspense fallback={<SuspenseFallback />}><DashboardPage /></Suspense> },
+      { path: 'knowledge-base', element: <Suspense fallback={<SuspenseFallback />}><KnowledgeBasePage /></Suspense> },
+      { path: 'email-drafts', element: <Suspense fallback={<SuspenseFallback />}><EmailDraftsPage /></Suspense> },
       { path: 'meetings', element: <Suspense fallback={<SuspenseFallback />}><MeetingsPage /></Suspense> },
       { path: 'meetings/:id', element: <Suspense fallback={<SuspenseFallback />}><MeetingDetailPage /></Suspense> },
       { path: 'leads', element: <Suspense fallback={<SuspenseFallback />}><LeadsPage /></Suspense> },

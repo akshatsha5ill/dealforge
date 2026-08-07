@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { Meeting, Transcript, Analysis, Lead, Deal, EmailCampaign, EmailTracking, DripCampaign, Setting } from '../../types';
+import { Meeting, Transcript, Analysis, Lead, Deal, EmailCampaign, EmailTracking, DripCampaign, Setting, KBDocument, KBChunk, EmailDraft } from '../../types';
 
 export class DealForgeDatabase extends Dexie {
   meetings!: Table<Meeting, string>;
@@ -11,6 +11,9 @@ export class DealForgeDatabase extends Dexie {
   email_tracking!: Table<EmailTracking, string>;
   settings!: Table<Setting, string>;
   drip_campaigns!: Table<DripCampaign, string>;
+  kb_documents!: Table<KBDocument, string>;
+  kb_chunks!: Table<KBChunk, string>;
+  email_drafts!: Table<EmailDraft, string>;
 
   constructor() {
     super('DealForgeDB');
@@ -51,6 +54,15 @@ export class DealForgeDatabase extends Dexie {
       drip_campaigns: 'id, leadId, status'
     }).upgrade(_tx => {
       // Dropping unneeded indexes to optimize writes and storage size
+    });
+
+    // Version 5: Knowledge Base (pivot to AI sales chatbot) + post-meeting email drafts
+    this.version(5).stores({
+      kb_documents: 'id, name, type, uploadedAt',
+      kb_chunks: 'id, docId, text, [docId+index]',
+      email_drafts: 'id, meetingId, email, status, createdAt'
+    }).upgrade(_tx => {
+      // New tables, no data migration needed
     });
   }
 }
