@@ -53,7 +53,7 @@ const endSessionSchema = z.object({
 });
 
 const generateFollowupsSchema = z.object({
-  sessionId: z.string().min(1).max(200),
+  sessionId: z.string().min(1).max(200).optional(),
   attendees: z
     .array(
       z.object({
@@ -66,6 +66,7 @@ const generateFollowupsSchema = z.object({
     .max(100),
   meetingTopic: z.string().min(1).max(500),
   companyName: z.string().min(1).max(200).optional(),
+  knowledgeContext: z.array(z.string().min(1).max(8000)).max(200).optional(),
   apiKey: z.string().min(1, 'Missing API key'),
 });
 
@@ -187,13 +188,22 @@ router.post(
   validateRequest({ body: generateFollowupsSchema }),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<any> => {
     try {
-      const { sessionId, attendees, meetingTopic } = req.body;
+      const { sessionId, attendees, meetingTopic, companyName, knowledgeContext } = req.body;
       const apiKey = req.body.apiKey;
       delete req.body.apiKey;
 
-      await assertOwnership(req, sessionId);
+      if (sessionId) {
+        await assertOwnership(req, sessionId);
+      }
 
-      const drafts = await generateFollowUps({ sessionId, attendees, meetingTopic, apiKey });
+      const drafts = await generateFollowUps({
+        sessionId,
+        attendees,
+        meetingTopic,
+        companyName,
+        knowledgeContext,
+        apiKey,
+      });
 
       return res.status(200).json({ status: 'success', drafts });
     } catch (error) {

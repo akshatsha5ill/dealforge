@@ -61,6 +61,15 @@ describe('email-collector', () => {
       expect(result).toEqual(expect.arrayContaining(['one@test.dev', 'two@test.dev']));
       expect(result.length).toBe(2);
     });
+
+    it('is stateless across sequential calls', () => {
+      expect(extractEmails('email is alice@first.dev and bob@first.dev')).toEqual([
+        'alice@first.dev',
+        'bob@first.dev',
+      ]);
+      expect(extractEmails('contact: carol@second.dev')).toEqual(['carol@second.dev']);
+      expect(extractEmails('email is dan@third.dev for details')).toEqual(['dan@third.dev']);
+    });
   });
 
   describe('collectEmail / getCollectedEmails', () => {

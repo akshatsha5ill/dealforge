@@ -316,6 +316,29 @@ describe('uploadDocument', () => {
     await expect(uploadDocument('   ', 'sk-test')).rejects.toThrow(/No readable text/);
     await expect(uploadDocument('', 'sk-test')).rejects.toThrow(/No readable text/);
   });
+
+  it('splits large uploads into multiple bounded embedding requests', async () => {
+    embedBatchResponder();
+    const text = 'z'.repeat(233_000);
+
+    const doc = await uploadDocument(text, 'sk-test');
+
+    expect(doc.chunkCount).toBeGreaterThan(128);
+    const calls = fetchMock.mock.calls as [string, RequestInit][];
+    expect(calls.length).toBeGreaterThan(1);
+    let totalInputs = 0;
+    for (const [, init] of calls) {
+      const body = JSON.parse(String(init.body));
+      expect(Array.isArray(body.input)).toBe(true);
+      expect(body.input.length).toBeLessThanOrEqual(128);
+      totalInputs += body.input.length;
+    }
+    expect(totalInputs).toBe(doc.chunkCount);
+    expect(chunkStore.size).toBe(doc.chunkCount);
+    for (const chunk of chunkStore.values()) {
+      expect(chunk.embedding.length).toBe(8);
+    }
+  });
 });
 
 describe('searchKnowledge', () => {

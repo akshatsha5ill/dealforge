@@ -268,13 +268,31 @@ export async function collectEmailsFromSegments(
 }
 
 export async function generateFollowUps(params: {
-  sessionId: string;
+  sessionId?: string;
   attendees: { email: string; name: string; questions: string[] }[];
   meetingTopic: string;
+  companyName?: string;
+  knowledgeContext?: string[];
   apiKey: string;
 }): Promise<Array<{ attendeeEmail: string; attendeeName: string; subject: string; body: string }>> {
-  const session = await loadSession(params.sessionId);
-  const knowledgeContext = session.knowledgeChunks.map((c) => c.text);
+  let companyName = params.companyName || '';
+  let knowledgeContext: string[] = [];
+
+  if (params.sessionId) {
+    const session = await getSession(params.sessionId);
+    if (session) {
+      companyName = session.companyName;
+      knowledgeContext = session.knowledgeChunks.map((c) => c.text);
+    }
+  }
+
+  if (!companyName) {
+    throw new AppError('A valid sessionId or companyName is required to generate follow-ups', 400);
+  }
+  if (params.knowledgeContext?.length) {
+    knowledgeContext = params.knowledgeContext;
+  }
+
   const results: Array<{ attendeeEmail: string; attendeeName: string; subject: string; body: string }> = [];
   for (const attendee of params.attendees) {
     const draft = await generateFollowUpDraft({
@@ -282,7 +300,7 @@ export async function generateFollowUps(params: {
       attendeeName: attendee.name,
       questionsAsked: attendee.questions,
       meetingTopic: params.meetingTopic,
-      companyName: session.companyName,
+      companyName,
       knowledgeContext,
       apiKey: params.apiKey,
     });

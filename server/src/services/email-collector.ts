@@ -30,6 +30,7 @@ export function extractEmails(text: string): string[] {
   const found: string[] = [];
   const standard = text.match(STANDARD_EMAIL);
   if (standard) found.push(...standard);
+  PHRASE_EMAIL.lastIndex = 0;
   let phraseMatch: RegExpExecArray | null;
   while ((phraseMatch = PHRASE_EMAIL.exec(text)) !== null) {
     if (phraseMatch[1]) found.push(phraseMatch[1]);

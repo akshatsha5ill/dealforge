@@ -3,6 +3,7 @@ import { Mail, ChevronDown, ChevronRight, Edit3, Save, Send, PenLine, Users, Che
 import { EmailDraft } from '../../types';
 import { getMeetings, getDrafts, getDraftsByMeeting, updateDraft, markSent, saveDrafts, DraftMeeting } from '../../services/email-drafts';
 import { sendEmail } from '../../services/ai/ai-service';
+import { exportChunksForMeeting } from '../../services/knowledge-base';
 import { getEmailIntegrationStatus, startEmailOAuth, IntegrationInfo, EmailProvider } from '../../services/email-integration';
 import { apiClient } from '../../services/api/client';
 import { useStore } from '../../store';
@@ -159,11 +160,13 @@ export default function EmailDraftsPage() {
         return;
       }
       const meetingId = `manual-${Date.now()}`;
+      const chunks = await exportChunksForMeeting().catch(() => []);
       const res = await apiClient.post<GenerateResponse>('/chatbot/generate-followups', {
         sessionId: meetingId,
         attendees,
         meetingTopic: genTopic || 'Webinar',
         companyName: 'our company',
+        knowledgeContext: chunks.map((c) => c.text).slice(0, 200),
         apiKey: openAiKey,
       });
       const now = new Date().toISOString();

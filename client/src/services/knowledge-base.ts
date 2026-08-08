@@ -7,6 +7,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
 const EMBEDDINGS_URL = 'https://api.openai.com/v1/embeddings';
 const EMBEDDING_MODEL = 'text-embedding-3-small';
+const EMBED_BATCH_SIZE = 128;
 
 export const DEFAULT_MAX_TOKENS = 500;
 export const DEFAULT_OVERLAP = 50;
@@ -31,39 +32,44 @@ export function chunkText(text: string, maxTokens = DEFAULT_MAX_TOKENS, overlap 
 
 async function embedBatch(texts: string[], apiKey: string): Promise<number[][]> {
   if (texts.length === 0) return [];
-  let res: Response;
-  try {
-    res = await fetch(EMBEDDINGS_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({ model: EMBEDDING_MODEL, input: texts }),
-    });
-  } catch (err) {
-    throw new Error(`Failed to reach the embeddings API: ${err instanceof Error ? err.message : String(err)}`);
-  }
-  if (!res.ok) {
-    let detail = '';
+  const results: number[][] = [];
+  for (let i = 0; i < texts.length; i += EMBED_BATCH_SIZE) {
+    const batch = texts.slice(i, i + EMBED_BATCH_SIZE);
+    let res: Response;
     try {
-      const body = await res.json();
-      detail = body?.error?.message ?? '';
-    } catch {
-      // response body is not JSON; fall back to the generic message
+      res = await fetch(EMBEDDINGS_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({ model: EMBEDDING_MODEL, input: batch }),
+      });
+    } catch (err) {
+      throw new Error(`Failed to reach the embeddings API: ${err instanceof Error ? err.message : String(err)}`);
     }
-    const statusText = res.statusText ? ` ${res.statusText}` : '';
-    const base = detail ? `${detail} (HTTP ${res.status})` : `HTTP ${res.status}${statusText}`;
-    if (res.status === 401) {
-      throw new Error(`Embeddings API rejected your API key: ${base}. Check the OpenAI API key in Settings.`);
+    if (!res.ok) {
+      let detail = '';
+      try {
+        const body = await res.json();
+        detail = body?.error?.message ?? '';
+      } catch {
+        // response body is not JSON; fall back to the generic message
+      }
+      const statusText = res.statusText ? ` ${res.statusText}` : '';
+      const base = detail ? `${detail} (HTTP ${res.status})` : `HTTP ${res.status}${statusText}`;
+      if (res.status === 401) {
+        throw new Error(`Embeddings API rejected your API key: ${base}. Check the OpenAI API key in Settings.`);
+      }
+      throw new Error(`Embeddings API request failed: ${base}`);
     }
-    throw new Error(`Embeddings API request failed: ${base}`);
+    const body = await res.json();
+    if (!Array.isArray(body?.data)) {
+      throw new Error('Embeddings API returned an unexpected response shape.');
+    }
+    results.push(...body.data.map((d: { embedding?: number[] }) => d?.embedding ?? []));
   }
-  const body = await res.json();
-  if (!Array.isArray(body?.data)) {
-    throw new Error('Embeddings API returned an unexpected response shape.');
-  }
-  return body.data.map((d: { embedding?: number[] }) => d?.embedding ?? []);
+  return results;
 }
 
 export async function generateEmbedding(text: string, apiKey: string): Promise<number[]> {

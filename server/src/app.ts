@@ -98,7 +98,7 @@ const aiLimiter = rateLimit({
 
 const chatbotLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Chat engine rate limit exceeded. Please wait before making another request.' }

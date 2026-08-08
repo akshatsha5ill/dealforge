@@ -130,6 +130,40 @@ describe('Chatbot Routes', () => {
     expect(end.body).toEqual({ status: 'success', drafts: 1, emails: [expect.objectContaining({ email: 'sarah@techcorp.com' })] });
   });
 
+  it('generates follow-ups in manual mode without a session (companyName + knowledgeContext)', async () => {
+    const auth = { Authorization: 'Bearer test-token' };
+
+    const res = await request(app)
+      .post('/api/chatbot/generate-followups')
+      .set(auth)
+      .send({
+        attendees: [{ email: 'manual@user.io', name: 'Manual', questions: ['What does it cost?'] }],
+        meetingTopic: 'Pasted transcript',
+        companyName: 'Acme Inc',
+        knowledgeContext: ['The starter plan costs $29/month.'],
+        apiKey: 'k',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      status: 'success',
+      drafts: [
+        { attendeeEmail: 'manual@user.io', attendeeName: 'Manual', subject: 'Re: Your question Manual', body: 'Hi Manual, thanks for joining!' },
+      ],
+    });
+  });
+
+  it('returns 400 for generate-followups without a session or companyName', async () => {
+    const auth = { Authorization: 'Bearer test-token' };
+
+    const res = await request(app)
+      .post('/api/chatbot/generate-followups')
+      .set(auth)
+      .send({ attendees: [{ email: 'x@y.io' }], meetingTopic: 'T', apiKey: 'k' });
+
+    expect(res.status).toBe(400);
+  });
+
   it('returns 404 for an unknown session', async () => {
     const auth = { Authorization: 'Bearer test-token' };
     const res = await request(app)
