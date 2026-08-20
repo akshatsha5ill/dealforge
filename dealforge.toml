@@ -1,0 +1,28 @@
+[app]
+log_level = "INFO"
+
+[meeting]
+platform = "dummy"            # plugin name
+api_key = "env:ZOOM_API_KEY"
+
+[intent]
+provider = "dummy"
+model = "gpt-4o-mini"
+threshold = 0.6
+
+[rag]
+embedder = "dummy"
+vectorstore = "dummy"
+top_k = 4
+collateral_dir = "./collateral"
+
+[answer]
+provider = "dummy"
+model = "gpt-4o"
+
+[dm]
+method = "dummy"        # or "email"
+
+[storage]
+type = "sqlite"
+path = "./dealforge.db"
